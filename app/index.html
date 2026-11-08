@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611081527"></script>
+<script src="data.js?v=202611081533"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -608,6 +608,17 @@ const applyMove = (pack, S, store, merge) => {
 // 지금 예전 주소에서 열렸고 새 주소가 정해져 있으면 넘긴다(앱을 그리기 전에). 넘기는 중이면 MOVING = true 로 나머지 시작 동작을 건너뛴다
 const MOVE_HOME = (() => { const h = window.PICKLE_HOME; return typeof h === "string" && /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}$/.test(h) ? h : ""; })();
 let MOVING = false;
+// 첫 방문 확인(docs/261108_답변_주소이사_백엔드보류.md 1장): 새 주소(pickle-musical.com)로만 들어오는 사람은 예전 주소에 갈 일이 없어서 위 넘기기가 안 일어난다.
+// 그래서 새 주소의 앱이 출처마다 한 번씩 예전 주소에 다녀온다. 예전 주소의 앱·이사 페이지가 데이터를 들고(없으면 빈손으로) 돌려보낸다.
+// 떠나기 전에 '확인함'을 먼저 적어 두고, 적은 게 읽히지 않으면(저장소를 못 쓰는 브라우저) 가지 않는다 → 무한 반복 없음. 출처 목록은 PICKLE_PULL_FROM(Actions 변수)
+const PULL_FROM = {soobworks: "https://soobworks.github.io/pickle", "2ma1995": "https://2ma1995.github.io/pickle"}, PULL_KEY = "pickle_pulled";
+const pullStep = (home, list, here, hash, store) => {
+  if (!home || !Array.isArray(list) || here !== new URL(home).hostname) return "";
+  let done = {}; try { done = JSON.parse(store.get(PULL_KEY) || "{}") || {}; } catch (e) {}
+  const src = list.find(x => Object.prototype.hasOwnProperty.call(PULL_FROM, x) && !done[x]); if (!src) return "";
+  try { store.set(PULL_KEY, JSON.stringify({...done, [src]: 1})); if (!JSON.parse(store.get(PULL_KEY) || "{}")[src]) return ""; } catch (e) { return ""; }
+  return PULL_FROM[src] + "/app/" + (hash && hash !== "#" && !hash.startsWith("#move=") ? hash : ""); };
+const PULL_LIST = Array.isArray(window.PICKLE_PULL) ? window.PICKLE_PULL.filter(x => typeof x === "string") : [];
 if (MOVE_HOME && MOVE_FROM.includes(location.hostname)) {
   let pack = null; try { pack = packMove(k => localStorage.getItem(k)); } catch (e) {}
   MOVING = true; location.replace(moveUrl(MOVE_HOME, pack, location.hash));
@@ -3619,6 +3630,9 @@ if (!MOVING && location.hash.startsWith("#move=")) { const mv = readMove(locatio
     renameTags(S); saveRaw(); MOVED = true; }
   const to = mv && /^#[^#]*$/.test(mv.to) && !mv.to.startsWith("#move=") ? mv.to : "";
   history.replaceState(null, "", location.pathname + location.search + to); }
+// 새 주소에서 열렸으면 아직 확인 안 한 예전 주소에 한 번 다녀온다(받아 온 데이터는 위에서 이미 넣었다. 출처가 둘이면 돌아온 뒤 다음 출처로). 로그인 다녀온 주소(?code=)는 건드리지 않는다
+if (!MOVING && !/[?&](code|error)=/.test(location.search)) { const url = pullStep(MOVE_HOME, PULL_LIST, location.hostname, location.hash, {get: k => localStorage.getItem(k), set: (k, v) => localStorage.setItem(k, v)});
+  if (url) { MOVING = true; location.replace(url); } }
 // 로그인(계정 연결) 다녀온 주소: 실패·취소(?error=)는 바로 지우고 내 데이터 카드에 알린다. 성공 코드(?code=)는 supabase-js 가 읽은 뒤(SYNC.start 다음) 지운다
 // 연결하기가 '이미 다른 기록에 연결된 계정'으로 거절되면 묻지 않고 그 계정으로 불러오기까지 이어 간다(AUTO_SIGNIN). 불러오기도 실패하면 안내만(같은 일을 되풀이하지 않는다)
 let AUTO_SIGNIN = "";
