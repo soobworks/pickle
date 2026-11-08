@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611081753"></script>
+<script src="data.js?v=202611081811"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2283,7 +2283,7 @@ const EVENTS = {
     actors: R.arr(8, R.obj({role: R.inSet("roles"), actor: R.inSet("actors"), rate: R.oneOf(["good", "meh", "bad"]), tags: R.arr(3, R.inSet("actorTags"))}, ["role", "actor", "rate"])),
     combo: R.arr(3, R.inSet("comboTags"))}},  // 관람 후 리뷰(11.1절)를 저장할 때. 주관식 원문은 보내지 않는다
   plan_status: {req: ["work", "date", "time", "status"], shape: {work: R_WORK, run: R_RUN, date: R.date, time: R.time, cast: R_CAST, status: R.oneOf(["tentative", "booked", "seen"])}},  // 내 티켓 캘린더에서 미정일정 ↔ 관람예정을 바꿀 때(예매 전환). 좌석·금액은 보내지 않는다
-  visit: {req: ["entry"], shape: {entry: R.oneOf(SCREENS), returning: R.bool}},  // 앱을 열 때 한 번: 들어온 화면, 전에 이 기기에서 온 적이 있는지(기기 번호가 이미 있었는지)
+  visit: {req: ["entry"], shape: {entry: R.oneOf(SCREENS), returning: R.bool, from: R.code}},  // from: 홍보 링크 꼬리표(?from=x, 2026-11-08). 정해진 모양의 짧은 코드만  // 앱을 열 때 한 번: 들어온 화면, 전에 이 기기에서 온 적이 있는지(기기 번호가 이미 있었는지)
   screen_view: {req: ["screen"], shape: {screen: R.oneOf(SCREENS), work: R_WORK}},  // 화면을 옮길 때마다 한 줄: 화면 이름(정해 둔 목록), MVP 작품 화면이면 작품
   // 2026-11-04 analytics: screen-stage and explicit interaction records; no raw text, IP, or timestamps.
   video_open: {req: ["work", "actor", "video"], shape: {work: R_WORK, actor: R.inSet("actors"), video: R.ytid, role: R.inSet("roles")}},
@@ -2610,7 +2610,7 @@ const syncPrivacy = () => SYNC_CFG ? `<div class="card"><h3>내 데이터 저장
 V.privacy = () => !trackUi() ? `<div class="one"><div class="card"><p class="small">이 앱은 지금 아무 기록도 서버로 보내지 않아요.</p><a class="btn ghost" href="#home">홈으로</a></div></div>` : `<div class="one prv">
   <div><h1>기록·개인정보 안내</h1></div>
   <div class="card prvno"><h3>남기지 않는 것</h3><ul class="small">${SYNC_CFG ? "<li>이름, 연락처를 묻지 않아요. 계정을 연결하면 그 계정의 이메일만 받아요.</li>" : "<li>이름, 연락처, 아이디, 가입 정보가 없어요.</li>"}<li>IP를 따로 저장하지 않아요.</li><li>기록한 시각은 남기지 않고 날짜만 남겨요.</li>${SYNC_CFG ? "" : "<li>관람 리뷰에 쓴 후기 글은 보내지 않아요.</li>"}<li>앨범에서 고른 포스터 사진은 보내지 않아요.</li><li>광고나 외부 분석 도구가 없어요.</li></ul></div>
-  ${syncPrivacy()}<div class="card"><h3>남기는 것</h3><p class="small">이 기기의 무작위 익명 번호와 함께, 고른 취향·추천에 대한 반응·화면 이동·본 공연 기록을 남겨요.</p><p class="small">내 티켓에 등록한 티켓은 공연명, 일시, 출연, 장소, 좌석, 금액, 구매처, 리뷰/메모를 남겨요. 리뷰/메모에는 연락처 같은 개인정보를 적지 마세요. 본 공연 기록은 공연, 본 날짜, 배우별 평가와 고른 태그를 남겨요. 전에 이 기기에 저장해 둔 티켓과 기록도 같은 방식으로 한 번 보내요.</p>
+  ${syncPrivacy()}<div class="card"><h3>남기는 것</h3><p class="small">이 기기의 무작위 익명 번호와 함께, 고른 취향·추천에 대한 반응·화면 이동·본 공연 기록을 남겨요. 홍보 링크로 들어왔다면 그 링크에 붙은 짧은 표시(예: x, kakao)도 남겨요.</p><p class="small">내 티켓에 등록한 티켓은 공연명, 일시, 출연, 장소, 좌석, 금액, 구매처, 리뷰/메모를 남겨요. 리뷰/메모에는 연락처 같은 개인정보를 적지 마세요. 본 공연 기록은 공연, 본 날짜, 배우별 평가와 고른 태그를 남겨요. 전에 이 기기에 저장해 둔 티켓과 기록도 같은 방식으로 한 번 보내요.</p>
     <h3>목적과 보관 기간</h3><p class="small">추천을 고치는 데만 쓰고, 서비스를 운영하는 동안 보관해요. 서비스를 마치면 지워요.</p></div>
   <div class="card"><h3>국외 이전</h3><p class="small">기록은 Supabase Pte. Ltd.(싱가포르)에 맡겨 저장해요. 저장 위치는 서울 리전이지만, Supabase와 협력 업체가 있는 나라에서 처리될 수 있어요.</p>
     <table class="prt"><tr><td>이전 항목</td><td>${SYNC_CFG ? "위 '내 데이터 저장'과 '남기는 것'(계정을 연결하면 이메일)" : "위 '남기는 것'(이름·연락처 없음)"}</td></tr><tr><td>국가</td><td>싱가포르 등 Supabase가 처리하는 나라</td></tr><tr><td>시기·방법</td><td>기록할 때마다 인터넷으로 전송</td></tr><tr><td>받는 자</td><td>Supabase Pte. Ltd.</td></tr><tr><td>목적·기간</td><td>추천 개선, 서비스를 운영하는 동안</td></tr><tr><td>거부 방법</td><td>아래 [기록 끄기]. 꺼도 추천은 그대로 쓸 수 있어요</td></tr></table></div>
@@ -3357,7 +3357,7 @@ function route() {
   document.querySelectorAll("[data-tab]").forEach(a => a.classList.toggle("on", a.dataset.tab === tab));
   if (location.hash !== lastHash) window.scrollTo(0, 0);  // 화면이 바뀔 때만 맨 위로. 카드·칩을 눌러 다시 그릴 땐 스크롤을 유지한다
   if (location.hash !== lastHash && !window.PICKLE_NO_SCREEN) { const sc = screenOf(name, args), w = ["find", "show", "detail", "review", "log"].includes(name) && workOf(args[0]) ? args[0] : undefined;
-    if (lastHash === undefined) track("visit", {entry: sc, returning: !!TRK.peekAnon()});
+    if (lastHash === undefined) track("visit", {entry: sc, returning: !!TRK.peekAnon(), ...(ENTRY_FROM ? {from: ENTRY_FROM} : {})});
     track("screen_view", w ? {screen: sc, work: w} : {screen: sc});
     // A result-screen entry is NOT proof that the recommendation cards were read.
     if (name === "find" && workOf(args[0]) && ["actor", "date"].includes(args[1])) {
@@ -3659,6 +3659,12 @@ document.addEventListener("keydown", e => {  // 시트(모달)가 열려 있을 
 });
 const ENTER_ADD = {favB: '[data-act="addFav"][data-k="b"]', fav: '[data-act="addFav"]:not([data-k])', avoidIn: '[data-act="addAvoid"]', lkadd: '[data-act="lkAdd"]', lmadd: '[data-act="lmAdd"]', acAvoid: '[data-act="acAvoidAdd"]'};  // 배우 검색 칸에서 엔터 = 그 칸의 [추가]
 document.addEventListener("keydown", e => { const sel = e.key === "Enter" && !e.isComposing && ENTER_ADD[e.target.id]; if (sel) { e.preventDefault(); $(sel)?.click(); } });
+// 유입 경로(2026-11-08): 홍보 링크의 꼬리표 ?from=x (또는 utm_source=x)를 읽어 이번 방문의 첫 기록(visit)에 from 으로 남긴다. 영문 소문자·숫자·_.- 20자까지만.
+// 읽은 뒤 주소에서 지운다(공유된 주소에 꼬리표가 따라다니지 않게). 다른 쿼리(?debug=1 등)는 그대로
+const ENTRY_FROM = (() => { try { const q = new URLSearchParams(location.search), v = (q.get("from") || q.get("utm_source") || "").trim().toLowerCase();
+  if ([...q.keys()].some(k => k === "from" || k.startsWith("utm_"))) { for (const k of [...q.keys()]) if (k === "from" || k.startsWith("utm_")) q.delete(k);
+    history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash); }
+  return /^[a-z0-9_.-]{1,20}$/.test(v) ? v : ""; } catch (e) { return ""; } })();
 // 주소 이사로 들어왔으면(#move=…) 받은 데이터를 이 브라우저에 넣고 원래 보던 화면으로. 모양이 틀린 묶음은 버리고 주소만 정리한다
 let MOVED = false;
 if (!MOVING && location.hash.startsWith("#move=")) { const mv = readMove(location.hash);
