@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611081655"></script>
+<script src="data.js?v=202611081735"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -619,6 +619,14 @@ const pullStep = (home, list, here, hash, store) => {
   try { store.set(PULL_KEY, JSON.stringify({...done, [src]: 1})); if (!JSON.parse(store.get(PULL_KEY) || "{}")[src]) return ""; } catch (e) { return ""; }
   return PULL_FROM[src] + "/app/" + (hash && hash !== "#" && !hash.startsWith("#move=") ? hash : ""); };
 const PULL_LIST = Array.isArray(window.PICKLE_PULL) ? window.PICKLE_PULL.filter(x => typeof x === "string") : [];
+// '예전 기록 가져오기' 버튼(2026-11-08, 혜원 님과 합의): 모두가 거쳐 가는 첫 방문 확인(PICKLE_PULL_FROM)은 꺼 두고, 누른 사람만 예전 주소 두 곳에 다녀온다.
+// 새 주소에서는 예전 주소의 저장소를 들여다볼 수 없어서(브라우저 보안) 누가 기존 사용자인지 미리 알 수 없다 → 홈은 이 브라우저에 기록이 없을 때만 안내, 내 취향 탭에는 늘 버튼
+const PULL_MANUAL = ["2ma1995", "soobworks"], PULL_REQ = "pickle_pull_req", PULL_HINT_OFF = "pickle_pull_hint_off";
+const canPullHere = () => !!MOVE_HOME && location.hostname === new URL(MOVE_HOME).hostname;
+// 누르면: 두 출처의 '확인함'을 지우고(전에 다녀왔어도 다시) 진행 표시를 남긴다. 돌아올 때마다 다음 출처로, 다 돌면 결과 안내
+const startPullOld = store => { let done = {}; try { done = JSON.parse(store.get(PULL_KEY) || "{}") || {}; } catch (e) {}
+  for (const s of PULL_MANUAL) delete done[s];
+  store.set(PULL_KEY, JSON.stringify(done)); store.set(PULL_REQ, JSON.stringify({got: false})); };
 if (MOVE_HOME && MOVE_FROM.includes(location.hostname)) {
   let pack = null; try { pack = packMove(k => localStorage.getItem(k)); } catch (e) {}
   MOVING = true; location.replace(moveUrl(MOVE_HOME, pack, location.hash));
@@ -1509,10 +1517,17 @@ const accountCard = () => {
   return `<div class="card" id="acct"><h3>내 데이터</h3><p class="tiny muted" role="status">${line}</p>${msg}${who}
     <div class="nbgrid">${st.anon ? "" : `<button class="nb" data-act="accAsk" data-k="signout">로그아웃</button>`}<button class="nb" data-act="accAsk" data-k="delete">내 데이터 모두 지우기</button></div>${ask}</div>`;
 };
+// '예전 기록 가져오기'(위 PULL_MANUAL): 홈은 이 브라우저에 기록이 아직 없고 [괜찮아요]를 안 눌렀을 때만, 내 취향 탭은 늘. 새 주소(pickle-musical.com)에서만 보인다
+const pullOff = () => { try { return !!localStorage.getItem(PULL_HINT_OFF); } catch (e) { return true; } };
+const pullOldHint = () => canPullHere() && !pullOff() && !hasContent(S) ? `<div class="card"><p class="small">예전 주소(2ma1995.github.io)에서 PICKLE을 쓰셨나요? 그때 저장한 취향·내 티켓·리뷰를 가져올 수 있어요.</p>
+  <div class="chips"><button class="btn ghost" data-act="pullOld">예전 기록 가져오기</button><button class="chip x" data-act="pullOldHide">괜찮아요</button></div></div>` : "";
+const pullOldCard = () => canPullHere() ? `<div class="card"><h3>예전 기록 가져오기</h3><p class="small muted">예전 주소(2ma1995.github.io·soobworks.github.io)에서 쓰던 기록이 있으면 이 브라우저로 가져와 지금 기록과 합쳐요. 지금 기록은 지워지지 않아요.</p>
+  <button class="btn ghost" data-act="pullOld">예전 기록 가져오기</button></div>` : "";
 V.me = step => {
   const rows = exportRows(), open = step === "1" || step === "2";
   return `<div class="one">${SURVEY_BANNER}${tasteSum(S.prefs || {}, open, "#me/1", "#me")}${open ? onboardBody(step, false, "", "#me") : ""}
     ${open ? "" : accountCard()}
+    ${open ? "" : pullOldCard()}
     ${rows.length && debugOn() ? `<div class="card"><h3>팀 시트로 내보내기</h3><p class="small muted">'태그 기록' 탭 맨 아래에 붙여 넣는 TSV ${rows.length}줄이에요.</p><button class="btn ghost" data-act="copyTsv">TSV 복사</button><pre>${esc(rows.map(r => r.join("\t")).join("\n"))}</pre></div>` : ""}
    </div>`;
 };
@@ -2830,7 +2845,7 @@ V.home = () => {
   Object.keys(RATE_CTX).forEach(k => delete RATE_CTX[k]);
   const visit = due >= 0 && S.plans[due] ? visitCard(due) : "";  // 관람 후 배너(결정 46 사용자 결정: 푸시 대신 홈 배너). 카드보다 위
   // 홈 맨 위의 기록 안내 줄은 뺐다(사용자 요청 2026-10-29). 기록·개인정보 안내는 홈 맨 아래 링크
-  if (!p) return `${noticeCard()}${syncNoticeCard()}${visit}${tkFan(from)}<div class="tcwrap">
+  if (!p) return `${noticeCard()}${syncNoticeCard()}${pullOldHint()}${visit}${tkFan(from)}<div class="tcwrap">
     <section class="tk empty" aria-label="아직 비어 있는 내 취향 카드">${TK_CURTAIN}
       <div class="tkveilbg" aria-hidden="true">${TK_HEAD}<div class="tkcell tkbig">나의 뮤지컬 관극 취향</div>
         <div class="tkgrid"><span class="tkcell"><span class="tkk">목소리</span><span class="tcskel w60"></span></span><span class="tkcell"><span class="tkk">노래</span><span class="tcskel w40"></span></span><span class="tkcell"><span class="tkk">본진 배우</span><span class="tcskel w60"></span></span><span class="tkcell"><span class="tkk">애정 배우</span><span class="tcskel w60"></span></span></div></div>
@@ -2852,7 +2867,7 @@ V.home = () => {
         <div class="tkperf" aria-hidden="true"></div>
         <div class="tkbtns" data-noshot><button type="button" class="tkedit" data-go="#taste/1">수정하기</button><button type="button" class="tkedit" data-act="tkShare">공유하기</button><button type="button" class="tkedit" data-act="tkSave">저장하기</button></div>${foot}</div>`;
   if (!CARD_BACK) prepCardImg();
-  return `${noticeCard()}${syncNoticeCard()}${visit}${tkFan(from)}<div class="tcwrap">${card}</div></div></div>${homeWorks(from)}
+  return `${noticeCard()}${syncNoticeCard()}${pullOldHint()}${visit}${tkFan(from)}<div class="tcwrap">${card}</div></div></div>${homeWorks(from)}
     ${privacyLink() ? `<p class="tiny muted">${privacyLink().replace(/^\s*·\s*/, "")}</p>` : ""}`;  // 기록·개인정보 안내 링크는 홈 맨 아래에만(사용자 요청 2026-11-03)
 };
 // 홈 아래 작품 목록(사용자 요청 2026-10-28: 홈이 비어 보이지 않게). ① 배우 조합을 추천받을 수 있는 작품(#find/작품) ② 지금 하는 공연 전체(KOPIS, 인기순·지역 칩, #show/…)
@@ -3484,6 +3499,11 @@ document.addEventListener("click", e => {
     case "accDelete": { ACC_ASK = ""; if (!SYNC) break; toast("지우는 중이에요…");
       SYNC.deleteAll().then(() => { for (const k of [KEY, "pickle_anon", "pickle_q", "pickle_posters", "pickle_votes"]) { try { localStorage.removeItem(k); } catch (e) {} } location.hash = "#home"; location.reload(); },
         () => { toast("지우지 못했어요. 잠시 뒤 다시 해 주세요"); route(); }); break; }
+    case "pullOld": { const store = {get: k => localStorage.getItem(k), set: (k, v) => localStorage.setItem(k, v)};  // 예전 기록 가져오기: 2ma1995 → soobworks 순서로 다녀온다
+      try { startPullOld(store); } catch (e) { toast("이 브라우저에서는 가져올 수 없어요"); break; }
+      const url = pullStep(MOVE_HOME, PULL_MANUAL, location.hostname, location.hash, store);
+      if (url) { MOVING = true; location.replace(url); } else { try { localStorage.removeItem(PULL_REQ); } catch (e) {} toast("이 브라우저에서는 가져올 수 없어요"); } break; }
+    case "pullOldHide": try { localStorage.setItem(PULL_HINT_OFF, "1"); } catch (e) {} route(); break;
     case "syncNoticeOk": (S.proto ||= {}).syncNotice = SYNC_CFG ? SYNC_CFG.since : ""; save(); route(); break;
     case "dbgToggle": DBG_OPEN = !DBG_OPEN; renderDebug(); break;
     case "areaTab": { if (d.t === "pickle" || regionTabs(allShows(D, today())).some(([k]) => k === d.t)) { (S.proto ||= {}).areaTab = d.t; HOME_ROWS = 5; HOME_Q = ""; save(); route(); } break; }  // 홈 전체 목록의 구분 버튼(검색어는 비운다)
@@ -3633,8 +3653,16 @@ if (!MOVING && location.hash.startsWith("#move=")) { const mv = readMove(locatio
   const to = mv && /^#[^#]*$/.test(mv.to) && !mv.to.startsWith("#move=") ? mv.to : "";
   history.replaceState(null, "", location.pathname + location.search + to); }
 // 새 주소에서 열렸으면 아직 확인 안 한 예전 주소에 한 번 다녀온다(받아 온 데이터는 위에서 이미 넣었다. 출처가 둘이면 돌아온 뒤 다음 출처로). 로그인 다녀온 주소(?code=)는 건드리지 않는다
-if (!MOVING && !/[?&](code|error)=/.test(location.search)) { const url = pullStep(MOVE_HOME, PULL_LIST, location.hostname, location.hash, {get: k => localStorage.getItem(k), set: (k, v) => localStorage.setItem(k, v)});
-  if (url) { MOVING = true; location.replace(url); } }
+// 출처: 자동(PICKLE_PULL_FROM, 지금은 꺼 둠) + '예전 기록 가져오기'를 눌러 진행 중이면 두 출처
+let PULL_DONE_MSG = "";
+{ const store = {get: k => localStorage.getItem(k), set: (k, v) => localStorage.setItem(k, v)};
+  let req = null; try { req = JSON.parse(localStorage.getItem(PULL_REQ) || "null"); } catch (e) {}
+  if (req && MOVED) { req.got = true; try { localStorage.setItem(PULL_REQ, JSON.stringify(req)); } catch (e) {} }
+  const url = !MOVING && !/[?&](code|error)=/.test(location.search) ? pullStep(MOVE_HOME, req ? [...new Set([...PULL_LIST, ...PULL_MANUAL])] : PULL_LIST, location.hostname, location.hash, store) : "";
+  if (url) { MOVING = true; location.replace(url); }
+  else if (req && !MOVING) {  // 다 돌았다: 결과 안내, 홈 안내는 이제 그만
+    try { localStorage.removeItem(PULL_REQ); localStorage.setItem(PULL_HINT_OFF, "1"); } catch (e) {}
+    PULL_DONE_MSG = req.got ? "예전 기록을 가져왔어요" : "가져올 예전 기록이 없었어요"; } }
 // 로그인(계정 연결) 다녀온 주소: 실패·취소(?error=)는 바로 지우고 내 데이터 카드에 알린다. 성공 코드(?code=)는 supabase-js 가 읽은 뒤(SYNC.start 다음) 지운다
 // 연결하기가 '이미 다른 기록에 연결된 계정'으로 거절되면 묻지 않고 그 계정으로 불러오기까지 이어 간다(AUTO_SIGNIN). 불러오기도 실패하면 안내만(같은 일을 되풀이하지 않는다)
 let AUTO_SIGNIN = "";
@@ -3648,6 +3676,7 @@ if (!TRK.peekAnon()) (S.proto ||= {}).notice = NOTICE_VER;  // 이 기기에서 
 const NOTICE_SEEN = noticeSendOk();  // 이번에 안내 화면으로 바로 들어온 사람은 끌 기회를 준 뒤(다음 방문·확인 버튼) 보낸다
 route();
 if (NOTICE_SEEN && !MOVING) { backfillReviews(); syncTickets(); }
+if (PULL_DONE_MSG) toast(PULL_DONE_MSG);
 // 주소 이사로 데이터를 받아도 알림은 띄우지 않는다(사용자 요청 2026-11-08: 거쳐 가는 느낌을 줄이기). 받은 데이터는 그대로 보인다
 renderDebug();
 if (SYNC && !MOVING) SYNC.start().then(() => {  // 화면을 먼저 그린 뒤 뒤에서 로그인·서버 판 맞추기
