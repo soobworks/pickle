@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611081549"></script>
+<script src="data.js?v=202611081655"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2380,7 +2380,9 @@ const SYNC_META = "pickle_sync", AFTER_AUTH = "pickle_after_auth";  // SYNC_META
 // 서버에 올리지 않는 것(화면 상태·이 기기 일시 값). 그 밖의 S 는 모두 올린다(새 칸이 생겨도 자동으로 따라가게 '빼는 목록' 방식). 앨범 포스터 사진(pickle_posters)은 S 밖이라 안 올라간다
 const LOCAL_ONLY = ["query", "plansTab", "draft"], LOCAL_PROTO = ["flash", "duelMsg", "areaTab"];
 const isObj = v => !!v && typeof v === "object" && !Array.isArray(v);
-const isEmptyVal = v => v == null || (Array.isArray(v) && !v.length) || (isObj(v) && !Object.keys(v).length);
+// 비어 있음: null·""·빈 목록, 그리고 칸이 모두 비어 있는 묶음(예: 취향 화면을 열었다 건너뛴 {axes: [], works: [], grade: ""}).
+// 빈칸만 채운 묶음을 '내용 있음'으로 보면 합칠 때 다른 쪽의 진짜 취향을 덮어쓴다(2026-11-08 예전 주소 이사에서 발견). false·0 은 값이라 비어 있지 않다
+const isEmptyVal = v => v == null || v === "" || (Array.isArray(v) && !v.length) || (isObj(v) && Object.values(v).every(isEmptyVal));
 const syncPart = S => { const out = {};
   for (const [k, v] of Object.entries(S || {})) if (!LOCAL_ONLY.includes(k) && v !== undefined) out[k] = v;
   if (isObj(out.proto)) { out.proto = {...out.proto}; for (const k of LOCAL_PROTO) delete out.proto[k]; }
