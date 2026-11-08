@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611081533"></script>
+<script src="data.js?v=202611081549"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3646,7 +3646,7 @@ if (!TRK.peekAnon()) (S.proto ||= {}).notice = NOTICE_VER;  // 이 기기에서 
 const NOTICE_SEEN = noticeSendOk();  // 이번에 안내 화면으로 바로 들어온 사람은 끌 기회를 준 뒤(다음 방문·확인 버튼) 보낸다
 route();
 if (NOTICE_SEEN && !MOVING) { backfillReviews(); syncTickets(); }
-if (MOVED) toast("새 주소로 옮겨 왔어요. 저장한 기록도 그대로예요");
+// 주소 이사로 데이터를 받아도 알림은 띄우지 않는다(사용자 요청 2026-11-08: 거쳐 가는 느낌을 줄이기). 받은 데이터는 그대로 보인다
 renderDebug();
 if (SYNC && !MOVING) SYNC.start().then(() => {  // 화면을 먼저 그린 뒤 뒤에서 로그인·서버 판 맞추기
   let after = null; try { after = JSON.parse(localStorage.getItem(AFTER_AUTH) || "null"); localStorage.removeItem(AFTER_AUTH); } catch (e) {}
