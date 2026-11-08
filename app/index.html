@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611081735"></script>
+<script src="data.js?v=202611081753"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1519,8 +1519,6 @@ const accountCard = () => {
 };
 // '예전 기록 가져오기'(위 PULL_MANUAL): 홈은 이 브라우저에 기록이 아직 없고 [괜찮아요]를 안 눌렀을 때만, 내 취향 탭은 늘. 새 주소(pickle-musical.com)에서만 보인다
 const pullOff = () => { try { return !!localStorage.getItem(PULL_HINT_OFF); } catch (e) { return true; } };
-const pullOldHint = () => canPullHere() && !pullOff() && !hasContent(S) ? `<div class="card"><p class="small">예전 주소(2ma1995.github.io)에서 PICKLE을 쓰셨나요? 그때 저장한 취향·내 티켓·리뷰를 가져올 수 있어요.</p>
-  <div class="chips"><button class="btn ghost" data-act="pullOld">예전 기록 가져오기</button><button class="chip x" data-act="pullOldHide">괜찮아요</button></div></div>` : "";
 const pullOldCard = () => canPullHere() ? `<div class="card"><h3>예전 기록 가져오기</h3><p class="small muted">예전 주소(2ma1995.github.io·soobworks.github.io)에서 쓰던 기록이 있으면 이 브라우저로 가져와 지금 기록과 합쳐요. 지금 기록은 지워지지 않아요.</p>
   <button class="btn ghost" data-act="pullOld">예전 기록 가져오기</button></div>` : "";
 V.me = step => {
@@ -2607,9 +2605,6 @@ const krDate = d => { const [y, m, dd] = String(d).split("-").map(Number); retur
 const syncPrivacy = () => SYNC_CFG ? `<div class="card"><h3>내 데이터 저장</h3><p class="small">브라우저를 지우거나 기기를 바꿔도 이어 쓸 수 있게, 고른 취향·좋아하는 배우·내 티켓과 일정·관람 리뷰(쓴 글 포함)를 서버에 저장해요. 앨범에서 고른 포스터 사진은 올리지 않아요.</p>
     <p class="small">가입 없이 이 브라우저에 무작위 번호로 연결해 저장해요. ${SYNC_CFG.login.length ? "구글·카카오 계정을 연결하면 그 계정의 이메일을 함께 저장하고, 다른 기기에서도 불러올 수 있어요. " : ""}이 저장은 앱을 쓰는 데 필요한 것이라 [기록 끄기]와 상관없이 이어져요.</p>
     <p class="small">내 취향 탭의 [내 데이터 모두 지우기]를 누르면 서버의 내 데이터와 보낸 기록, 연결한 계정 정보를 바로 지워요. 누르지 않으면 서비스를 운영하는 동안 보관해요.</p></div>` : "";
-const syncNoticeCard = () => SYNC_CFG && (S.proto?.syncNotice || "") !== SYNC_CFG.since ? `<div class="card accent notice" role="status"><p class="small"><b>내 데이터를 서버에도 저장해요 (${krDate(SYNC_CFG.since).slice(6)})</b></p>
-  <p class="small">브라우저를 지우거나 기기를 바꿔도 이어 쓸 수 있게 취향·내 티켓·관람 리뷰를 서버에 저장해요.${SYNC_CFG.login.length ? " 계정을 연결하면 다른 기기에서도 불러올 수 있어요." : ""} 언제든 내 취향 탭에서 모두 지울 수 있어요.</p>
-  <div class="chips"><button class="btn" data-act="syncNoticeOk">확인</button><a class="btn ghost" href="#privacy">자세히 보기</a></div></div>` : "";
 // 기록·개인정보 안내(사용자 요청 2026-11-03: 꼭 필요한 것만). 홈 맨 아래 링크로만 들어온다. 문장은 기록기 코드와 맞춰 둔다:
 // 이벤트 표(EVENTS)에 이름·연락처·IP·시각 칸이 없고(서버 한 줄 = 무작위 번호·버전·이벤트·payload, 시각은 순서 seq 로 대신), 관람 후 리뷰(after_review)에 주관식이 없고, 광고·분석 스크립트를 싣지 않는다
 V.privacy = () => !trackUi() ? `<div class="one"><div class="card"><p class="small">이 앱은 지금 아무 기록도 서버로 보내지 않아요.</p><a class="btn ghost" href="#home">홈으로</a></div></div>` : `<div class="one prv">
@@ -2845,7 +2840,7 @@ V.home = () => {
   Object.keys(RATE_CTX).forEach(k => delete RATE_CTX[k]);
   const visit = due >= 0 && S.plans[due] ? visitCard(due) : "";  // 관람 후 배너(결정 46 사용자 결정: 푸시 대신 홈 배너). 카드보다 위
   // 홈 맨 위의 기록 안내 줄은 뺐다(사용자 요청 2026-10-29). 기록·개인정보 안내는 홈 맨 아래 링크
-  if (!p) return `${noticeCard()}${syncNoticeCard()}${pullOldHint()}${visit}${tkFan(from)}<div class="tcwrap">
+  if (!p) return `${homeNotices()}${visit}${tkFan(from)}<div class="tcwrap">
     <section class="tk empty" aria-label="아직 비어 있는 내 취향 카드">${TK_CURTAIN}
       <div class="tkveilbg" aria-hidden="true">${TK_HEAD}<div class="tkcell tkbig">나의 뮤지컬 관극 취향</div>
         <div class="tkgrid"><span class="tkcell"><span class="tkk">목소리</span><span class="tcskel w60"></span></span><span class="tkcell"><span class="tkk">노래</span><span class="tcskel w40"></span></span><span class="tkcell"><span class="tkk">본진 배우</span><span class="tcskel w60"></span></span><span class="tkcell"><span class="tkk">애정 배우</span><span class="tcskel w60"></span></span></div></div>
@@ -2867,7 +2862,7 @@ V.home = () => {
         <div class="tkperf" aria-hidden="true"></div>
         <div class="tkbtns" data-noshot><button type="button" class="tkedit" data-go="#taste/1">수정하기</button><button type="button" class="tkedit" data-act="tkShare">공유하기</button><button type="button" class="tkedit" data-act="tkSave">저장하기</button></div>${foot}</div>`;
   if (!CARD_BACK) prepCardImg();
-  return `${noticeCard()}${syncNoticeCard()}${pullOldHint()}${visit}${tkFan(from)}<div class="tcwrap">${card}</div></div></div>${homeWorks(from)}
+  return `${homeNotices()}${visit}${tkFan(from)}<div class="tcwrap">${card}</div></div></div>${homeWorks(from)}
     ${privacyLink() ? `<p class="tiny muted">${privacyLink().replace(/^\s*·\s*/, "")}</p>` : ""}`;  // 기록·개인정보 안내 링크는 홈 맨 아래에만(사용자 요청 2026-11-03)
 };
 // 홈 아래 작품 목록(사용자 요청 2026-10-28: 홈이 비어 보이지 않게). ① 배우 조합을 추천받을 수 있는 작품(#find/작품) ② 지금 하는 공연 전체(KOPIS, 인기순·지역 칩, #show/…)
@@ -3269,10 +3264,29 @@ const snapTaste = () => {
 const NOTICE_VER = "2026-11-05";  // 홈 알림 버전. 11-05: 6개월 자동 삭제 폐기(사용자 결정), 서비스를 운영하는 동안 보관
 const NOTICE_SEND = "2026-11-04b";  // 보내기 시작에 필요한 안내(내 티켓·본 공연 기록 추가). 이걸 본 기기는 보관 기간 알림을 보기 전에도 계속 보낸다
 const noticeSendOk = () => (S.proto?.notice || "") >= NOTICE_SEND;  // 날짜 문자열 비교: 2026-11-05 > 2026-11-04b
-const noticeCard = () => trackUi() && !TRK.isOff() && S.proto?.notice !== NOTICE_VER ? `<div class="card accent notice" role="status"><p class="small"><b>기록 안내가 바뀌었어요 (11월 5일)</b></p>
-  ${noticeSendOk() ? "" : `<p class="small">이제 내 티켓에 등록한 티켓(공연명·일시·출연·장소·좌석·금액·구매처·리뷰/메모)과 본 공연 기록(배우별 평가와 태그)도 남겨요. 앨범에서 고른 포스터 사진은 보내지 않아요. 전에 이 기기에 저장해 둔 티켓과 기록도 한 번 보내요.</p>`}
-  <p class="small">보관 기간이 바뀌었어요. 6개월이 지나면 지우던 기록을 이제 서비스를 운영하는 동안 보관하고, 서비스를 마치면 지워요. 쓰임은 그대로 추천을 고치는 데만이에요.</p>
-  <div class="chips"><button class="btn" data-act="noticeOk">확인</button><a class="btn ghost" href="#privacy">자세히 보기·기록 끄기</a></div></div>` : "";
+// 홈 안내 한 카드(2026-11-08 사용자 요청: 카드 세 개가 쌓여 본 화면이 밀리던 것). 위: 기록 안내 변경·동기화 알림 + 확인 버튼 하나, 아래(구분선): 예전 기록 가져오기
+// 확인 버튼은 그때 보이던 알림만 끝낸다(noticeOk·syncNoticeOk 같은 동작, ackNotices). 문구는 예전 카드 그대로
+const recNoticeOn = () => trackUi() && !TRK.isOff() && S.proto?.notice !== NOTICE_VER;
+const syncNoticeOn = () => !!SYNC_CFG && (S.proto?.syncNotice || "") !== SYNC_CFG.since;
+const pullHintOn = () => canPullHere() && !pullOff() && !hasContent(S);
+const homeNotices = () => {
+  const rec = recNoticeOn(), sync = syncNoticeOn(), pull = pullHintOn();
+  if (!rec && !sync && !pull) return "";
+  const top = rec || sync ? `<div class="nsec">
+    ${rec ? `<div class="nitem"><p class="small"><b>기록 안내가 바뀌었어요 (11월 5일)</b></p>
+      ${noticeSendOk() ? "" : `<p class="small">이제 내 티켓에 등록한 티켓(공연명·일시·출연·장소·좌석·금액·구매처·리뷰/메모)과 본 공연 기록(배우별 평가와 태그)도 남겨요. 앨범에서 고른 포스터 사진은 보내지 않아요. 전에 이 기기에 저장해 둔 티켓과 기록도 한 번 보내요.</p>`}
+      <p class="small">보관 기간이 바뀌었어요. 6개월이 지나면 지우던 기록을 이제 서비스를 운영하는 동안 보관하고, 서비스를 마치면 지워요. 쓰임은 그대로 추천을 고치는 데만이에요.</p></div>` : ""}
+    ${sync ? `<div class="nitem"><p class="small"><b>내 데이터를 서버에도 저장해요 (${krDate(SYNC_CFG.since).slice(6)})</b></p>
+      <p class="small">브라우저를 지우거나 기기를 바꿔도 이어 쓸 수 있게 취향·내 티켓·관람 리뷰를 서버에 저장해요.${SYNC_CFG.login.length ? " 계정을 연결하면 다른 기기에서도 불러올 수 있어요." : ""} 언제든 내 취향 탭에서 모두 지울 수 있어요.</p></div>` : ""}
+    <div class="chips"><button class="btn" data-act="noticeOk">확인</button><a class="btn ghost" href="#privacy">${rec ? "자세히 보기·기록 끄기" : "자세히 보기"}</a></div></div>` : "";
+  const bottom = pull ? `<div class="nsec"><p class="small">예전 주소(2ma1995.github.io)에서 PICKLE을 쓰셨나요? 그때 저장한 취향·내 티켓·리뷰를 가져올 수 있어요.</p>
+    <div class="chips"><button class="btn ghost" data-act="pullOld">예전 기록 가져오기</button><button class="chip x" data-act="pullOldHide">괜찮아요</button></div></div>` : "";
+  return `<div class="card notices" role="status">${top}${bottom}</div>`;
+};
+// 확인 버튼: 보이던 알림만 끝낸다. 기록 안내를 끝낼 때는 예전처럼 전에 저장한 기록을 보낸다
+const ackNotices = () => { const rec = recNoticeOn(), sync = syncNoticeOn(); S.proto ||= {};
+  if (rec) S.proto.notice = NOTICE_VER; if (sync) S.proto.syncNotice = SYNC_CFG.since;
+  save(); if (rec) { backfillReviews(); syncTickets(); } };
 // MVP 밖 본 공연 기록 보내기. 보냈거나 보낼 게 없는 기록은 S.proto.rvSent(작품|날짜|회차)에 표시한다. 기록을 끈 동안은 표시하지 않는다(다시 켜면 다음 방문에 보낸다)
 const rvKey = rv => [rv.work, rv.date, rv.time].join("|");
 const sendShowReview = (rv, backfill = false) => {
@@ -3504,7 +3518,7 @@ document.addEventListener("click", e => {
       const url = pullStep(MOVE_HOME, PULL_MANUAL, location.hostname, location.hash, store);
       if (url) { MOVING = true; location.replace(url); } else { try { localStorage.removeItem(PULL_REQ); } catch (e) {} toast("이 브라우저에서는 가져올 수 없어요"); } break; }
     case "pullOldHide": try { localStorage.setItem(PULL_HINT_OFF, "1"); } catch (e) {} route(); break;
-    case "syncNoticeOk": (S.proto ||= {}).syncNotice = SYNC_CFG ? SYNC_CFG.since : ""; save(); route(); break;
+    case "syncNoticeOk": ackNotices(); route(); break;  // 예전 버튼 이름(같은 동작)
     case "dbgToggle": DBG_OPEN = !DBG_OPEN; renderDebug(); break;
     case "areaTab": { if (d.t === "pickle" || regionTabs(allShows(D, today())).some(([k]) => k === d.t)) { (S.proto ||= {}).areaTab = d.t; HOME_ROWS = 5; HOME_Q = ""; save(); route(); } break; }  // 홈 전체 목록의 구분 버튼(검색어는 비운다)
     case "homeMore": { HOME_ROWS += 5; const g = $("#homegrid"); if (g) g.innerHTML = homeGrid(today()); break; }  // 5줄씩 더(화면 전체를 다시 그리지 않아 스크롤 위치 그대로)
@@ -3596,7 +3610,7 @@ document.addEventListener("click", e => {
         entry: dr.entry === "log" ? "log" : "plan", rated_actors: Math.min(20, Object.keys(out.rows || {}).length)});
       if (!workOf(out.work)) sendShowReview(out);  // KOPIS·직접 입력 공연은 show_review(제목·공연장·후기 글 없이)
       dr.done = true; save(); route(); break; }  // 저장 뒤 같은 화면에서 배우 조건 제안(결정 51)
-    case "noticeOk": { (S.proto ||= {}).notice = NOTICE_VER; save(); backfillReviews(); syncTickets(); route(); break; }  // 바뀐 기록 안내의 확인 버튼 → 전에 저장한 본 공연 기록을 보낸다
+    case "noticeOk": ackNotices(); route(); break;  // 홈 안내 카드의 확인 버튼: 보이던 알림(기록 안내 변경·동기화)을 끝낸다. 기록 안내면 전에 저장한 기록도 보낸다
     case "rvSkip": { const dr = S.proto?.rdraft; if (!dr) return; const [w, dt, tm] = dr.k.split("|"), x = S.plans.find(y => y.work === w && y.date === dt && y.time === tm); if (x) x.asked = true; S.proto.rdraft = null; save(); location.hash = "#plans"; break; }  // 건너뛰면 관람 이력만 남고 다시 묻지 않는다
     case "rvPick": { const dr = S.proto?.rdraft; if (!dr?.done) return; dr.picks = dr.picks.some(x => x.actor === d.a) ? dr.picks.filter(x => x.actor !== d.a) : [...dr.picks, {actor: d.a, kind: d.k}]; save(); route(); break; }
     case "rvSug": { const dr = S.proto?.rdraft; if (!dr) return; if (d.y === "1" && dr.picks.length) applySuggest(S, dr.picks); const n = d.y === "1" ? dr.picks.length : 0; S.proto.rdraft = null; save(); location.hash = "#plans"; if (n) toast("배우 조건에 넣었어요"); break; }

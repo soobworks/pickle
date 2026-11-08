@@ -656,3 +656,10 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .cday .cpart>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cday .cpart.tentative>img{filter:grayscale(1)}
 .cday .cpart .cw{inset:auto 1px 4px;font-size:8.5px}
+/* 홈 안내 한 카드(2026-11-08): 위 알림 묶음 + [확인], 아래 예전 기록 가져오기. 구역 사이 구분선 */
+.card.notices{display:flex;flex-direction:column;gap:14px}
+.notices .nsec{display:flex;flex-direction:column;gap:10px}
+.notices .nsec+.nsec{border-top:1px solid var(--line);padding-top:14px}
+.notices .nitem{display:flex;flex-direction:column;gap:4px}
+.notices .nitem+.nitem{padding-top:6px}
+@media (min-width:720px){.notices .chips{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}.notices .chips>.btn{width:auto;flex:0 0 auto;min-width:150px;padding-inline:24px}}
