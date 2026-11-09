@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611090925"></script>
+<script src="data.js?v=202611091346"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2215,7 +2215,7 @@ mergeMyTags();
 // <track>
 const TRACK_CFG = {mode: "practice", url: "", key: "", table: "events", batch: 20, cap: 600, maxBytes: 4096, keepaliveBytes: 56000};  // keepalive 요청 본문은 64KB 까지라 한 번에 56KB 넘게 묶지 않는다
 const ALGO_VER = "rule-v1";  // 추천 방식 버전: 추천 규칙이 바뀌면 올린다(어느 방식이 낸 추천을 평가한 건지 구분)
-const APP_VER = "proto-0.6";  // 서버 표 제약: 20자 이하
+const APP_VER = "proto-0.7";  // 0.7(2026-11-09): to_dates·date_pick·rec_shown 기록 추가  // 서버 표 제약: 20자 이하
 // 이유 칩 7개(정의서). 코드 ↔ 화면 글자. 글자가 바뀌어도 기록 값(코드)은 그대로다
 const CHIPS = [["voice", "목소리"], ["vocal", "성량·가창"], ["acting", "연기·해석"], ["chemistry", "두 배우 호흡"], ["actor", "특정 배우"], ["wrong", "설명이 틀렸어요"], ["etc", "날짜·가격·이미 봄"]];
 const CHIP_CODES = CHIPS.map(c => c[0]);
@@ -2302,6 +2302,10 @@ const EVENTS = {
   ticket: {req: ["tid"], shape: {tid: R.code, title: R.text(60), date: R.date, time: R.time, status: R.oneOf(["tentative", "booked", "seen"]), src: R.oneOf(["mvp", "kopis", "manual", "csv"]),
     kopis: R.inSet("shows"), cast: R.arr(30, R.text(20)), venue: R.text(60), seat: R.text(40), price: R.int(1, 9999999), buyer: R.text(40), memo: R.text(2000), memo_cut: R.bool,
     cr: R.obj({a: R.oneOf(["like", "dislike", "unsure"]), why: R.oneOf(["actor", "combo", "reason", "skip"]), actor: R.text(20)}, ["a"]), own_poster: R.bool, deleted: R.bool}},
+  // 2026-11-09 측정 보강(docs/261108_추천화면_점검.md 5장 1·4번): 추천 카드가 실제로 나왔는지, 추천을 보고 다음 단계(날짜 보기·날짜 고름)로 갔는지
+  rec_shown: {req: ["work", "path", "n"], shape: {work: R_WORK, path: R.oneOf(["show", "actor", "date"]), n: R.int(1, 20)}},  // 추천 카드 n장이 화면에 나옴(방문마다 화면별 한 번)
+  to_dates: {req: ["work", "path"], shape: {work: R_WORK, path: R.oneOf(["show"]), rank: R.int(0, 20)}},  // 공연 화면 [이 조합으로 날짜 보기]. rank: 고른 조합의 추천 순위(0 = 추천 밖에서 직접 고른 조합)
+  date_pick: {req: ["work", "path", "date"], shape: {work: R_WORK, path: R.oneOf(["show", "actor"]), date: R.date}},  // 조합 달력에서 공연 날짜를 고름
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const isJwt = k => /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(k);
@@ -3099,9 +3103,12 @@ const actorDetail = (work, role, a, want) => {
 const nameEm = a => Math.ceil([...a].reduce((s, c) => s + (/[가-힣]/.test(c) ? 1 : c === " " ? 0.3 : 0.62), 0) * 100) / 100;
 const roleBreak = r => esc(r).replace(/[가-힣]{5,}/g, w => `${w.slice(0, Math.ceil(w.length / 2))}<wbr>${w.slice(Math.ceil(w.length / 2))}`);  // 공백 없는 긴 배역명이 칸보다 길 때만 가운데서 나눈다(베아트/리체). 폰 칸은 넓어서 나뉘지 않는다
 // 추천 조합 카드(docs/261027_2 10절): 카드마다 [이 조합 고르기] + '이 조합 어때요?' 만족도. 별로예요 → '누구 때문인가요?' → 배우를 고르면 이 작품의 피하고 싶은 배우에 넣을지 묻는다(동의할 때만)
+const REC_SHOWN = new Set();  // 이번 방문에서 rec_shown 을 남긴 작품|화면
 const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 먼저 ② — 고르면 고른 조합의 캘린더 화면으로
   const from = today(), sh = shownRecs(D, S, work, from, inDates), sat = satOf(S, work), W = esc(work), DD = inDates ? ` data-dd="1"` : "";  // 날짜 먼저 카드는 data-dd 로 구분
-  if (sh.list.length && !S.proto?.recSeen) { (S.proto ||= {}).recSeen = today(); save(); }  // 추천 조합을 실제로 봤다(홈 베타 후기 팝업 조건, 결정 83)
+  if (sh.list.length && !S.proto?.recSeen) { (S.proto ||= {}).recSeen = today(); save(); }
+  { const path = inDates ? "date" : nav ? "actor" : "show", k = work + "|" + path;  // 추천 카드가 실제로 나왔다(2026-11-09): 같은 방문에서 같은 화면은 한 번만
+    if (sh.list.length && !REC_SHOWN.has(k)) { REC_SHOWN.add(k); track("rec_shown", {work, path, n: Math.min(sh.list.length, 20)}); } }  // 추천 조합을 실제로 봤다(홈 베타 후기 팝업 조건, 결정 83)
   const recBy = new Map(comboRecs(D, S, work, from, inDates).map(r => [r.key, r]));
   const kinds = wantKinds(D, S, work, inDates ? "date" : "actor"), pk = S.proto?.pick?.[work + (inDates ? "#날짜" : "")], recOf = sh.list.map(c => recBy.get(c.key) || null);  // kinds: 꼭 보고 싶은 배우(이름 상자 양쪽 커튼) · pk: 사용자가 [이 조합 고르기]를 눌러 고른 조합(흐름별 기억)
   const whyLines = c => { const r = recBy.get(c.key); if (!r) return "";  // 왜 맞는지 사용자 친화 문장(reasonLines): 본진·애정 배우 → 취향에 맞는 배우의 특징 → 조합 평가, 근거가 없으면 배우 조건 문장
@@ -3492,9 +3499,12 @@ document.addEventListener("click", e => {
       if (e.ask === "yes" && pinStateOf(S, d.work, e.actor) !== "avoid") { const before = pinStateOf(S, d.work, e.actor); setPin(S, d.work, e.actor, "avoid"); (((S.proto ||= {}).satOut ||= {})[d.work] ||= []).push(e.actor); track("actor_pick", pickRecord(D, d.work, e.actor, before, "avoid")); }  // 이 작품에 한해 뺀다(9.2절). 몰래 감점하지 않는다
       save(); route(); break; }
     case "recAgain": { if (!recAgain(D, S, d.work, today(), d.dd ? S.cal[d.work]?.dates || [] : null)) { toast("이 조건에서 더 보여 드릴 조합이 없어요"); return; } save(); route(); break; }
-    case "calDay": { ((S.proto ||= {}).cd ||= {})[d.work] = d.d; save(); route(); break; }
+    case "calDay": { ((S.proto ||= {}).cd ||= {})[d.work] = d.d; save(); track("date_pick", {work: d.work, path: CUR.name === "show" ? "show" : "actor", date: d.d}); route(); break; }  // 조합 달력에서 날짜 고름(2026-11-09)
     case "calMove": { calMove(S, d.work, selDates(D, d.work, curSel(D, S, d.work, today()), today()), +d.d); save(); route(); break; }
-    case "toDates": { const t = document.querySelector("#dates"); if (t) t.scrollIntoView({behavior: "smooth"}); break; }
+    case "toDates": { const t = document.querySelector("#dates"); if (t) t.scrollIntoView({behavior: "smooth"});
+      if (CUR.name === "show") { const w = decodeURIComponent(CUR.args[0] || ""), sel = curSel(D, S, w, today()), recs = shownRecs(D, S, w, today()).list, i = recs.findIndex(c => Object.entries(c.cast).every(([r, a]) => sel[r] === a));
+        track("to_dates", {work: w, path: "show", rank: i + 1}); }  // 추천을 보고 다음 단계로(2026-11-09). rank 0 = 추천 밖 조합
+      break; }
     case "cmpOpen": { const c = S.proto?.cmp?.[d.work]; if (!c) return; const flip = Math.random() < 0.5; SHEET = {kind: "duel", work: d.work, cur: {role: c.role, left: flip ? c.b : c.a, right: flip ? c.a : c.b}}; renderSheet(); break; }  // 좌우는 무작위
     case "sheetDuel": { if (SHEET?.kind !== "duel") return; const {work: w, cur} = SHEET; const r = applyDuel(S, w, cur, d.r); delete (S.proto.cmp || {})[w]; save(); closeSheet(); route(); toast(r.win ? `${r.win} 쪽을 골랐어요. 추천 조합에 반영했어요` : "비슷하다고 기록했어요"); break; }
     case "visitSkip": skipVisit(S, +d.i); save(); route(); break;
