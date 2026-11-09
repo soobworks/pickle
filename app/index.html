@@ -542,7 +542,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611091346"></script>
+<script src="data.js?v=202611091408"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2915,7 +2915,7 @@ const BETA_TEXT = "베타 테스트 이용 후기를 들려주세요!", BETA_URL
 const betaLink = (text, cls = "") => `<a class="btn ${cls}" data-beta="1" href="${BETA_URL}" target="_blank" rel="noopener">${esc(text)}</a>`;
 const betaDone = () => { (S.proto ||= {}).betaDone = today(); save(); };
 const betaDue = S => hasTaste(S.prefs) && !!S.proto?.recSeen && !S.proto?.betaDone;
-const recHead = (eyebrow, title) => `<div class="rchead"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1></div>${betaLink(BETA_TEXT, "betabtn")}</div>`;
+const recHead = (eyebrow, title) => `<div class="rchead"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1></div></div>`;  // 베타 후기 버튼은 카드 아래로 옮겼다(2026-11-09, docs/261108_추천화면_점검.md 5장 2번: 다음 단계 버튼보다 눈에 띄었다)
 const dfRange = st => st.range !== false;  // 기간이 기본(사용자가 하루씩을 고르면 false)
 // 기간 탭 누르기(결정 78): 시작일을 다시 누르면 풀고, 고른 구간의 날짜를 누르면 그 구간만 취소. 그 밖에는 시작일 → 끝일로 구간을 더한다. st.spans = 고른 구간 [시작, 끝] 목록(겹치면 하나로 합침)
 const dfRangeTap = (st, work, d) => {
@@ -3021,8 +3021,10 @@ const workTaste = (w, open = false) => `<div class="one"><div><p class="eyebrow"
 V.find = (work, how, step) => {
   const from = today(), w = work && workOf(work);
   if (w && (!how || how === "edit") && workState(w, from).ok) return workTaste(w, how === "edit");  // 작품을 고르면 먼저 작품 취향 확인(6.3절). #find/작품/edit 이면 기대 질문을 펼친다
-  if (w && how === "date") return dateFirst(w, step);  // 날짜 먼저(7절)
-  if (w && how === "actor") return actorFirst(w, step);  // 배우 먼저(8절)
+  // 추천 화면(recs)은 맨 아래에 베타 후기 버튼(2026-11-09: 제목 옆에서 옮김 — 카드의 다음 단계 버튼보다 눈에 띄었다). 추천 카드가 없을 때도 보인다
+  const betaFoot = html => step === "recs" ? html.replace(/<\/div>$/, `<div class="betafoot">${betaLink(BETA_TEXT, "ghost betabtn")}</div></div>`) : html;
+  if (w && how === "date") return betaFoot(dateFirst(w, step));  // 날짜 먼저(7절)
+  if (w && how === "actor") return betaFoot(actorFirst(w, step));  // 배우 먼저(8절)
   if (w) { const st = workState(w, from);
     return `<div class="one"><div><p class="eyebrow">${esc(w.name)}</p><h1>어떻게 찾을까요?</h1></div>
       ${st.ok ? `<div class="howlist">
@@ -3126,9 +3128,9 @@ const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 �
       ${e.actor && !e.ask ? `<div class="pinask"><p class="small">${esc(e.actor)} 배우를 피하고 싶은 배우에 추가할까요? <span class="muted">이 작품에서만 빠져요.</span></p><div class="nbgrid"><button class="nb" data-act="satAvoid" data-work="${W}"${DD} data-i="${i}" data-y="1">추가</button><button class="nb" data-act="satAvoid" data-work="${W}"${DD} data-i="${i}" data-y="0">아니요</button></div></div>`
         : e.actor && e.ask === "yes" ? `<p class="tiny muted">${esc(e.actor)} 배우를 이 작품에서 뺐어요.</p>` : ""}`;
     return `<div class="card rcard">${whenHead(c.key)}<span class="rcrank${i === 0 ? " r1" : ""}">${i + 1}순위</span><div class="rcast" style="--n:${names.length}">${Object.entries(c.cast).map(([r, a]) => `<div class="${["rca", kinds.has(a) ? "want" : "", (rec?.evByActor?.[a] || []).length ? "fit" : ""].filter(Boolean).join(" ")}" style="--m:${nameEm(a)}"><span>${roleBreak(r)}</span><b>${esc(a)}</b></div>`).join("")}</div><p class="tiny muted">${inDates ? "고른 날짜 중 " : "남은 "}회차 ${nPerf(c.key)}개</p>${whyLines(c)}
-      <button class="rcpick ${on ? "on" : ""}" data-act="selCombo" data-work="${W}"${DD}${nav ? ` data-nav="1"` : ""} data-i="${i}" aria-pressed="${on}">${on ? (nav ? "고른 조합 · 날짜 보기" : "고른 조합") : "이 조합 고르기"}</button>
-      <p class="tiny muted">이 조합 어때요?</p><div class="chips">${SAT.map(([k, l]) => `<button type="button" class="chip x ${e?.a === k ? "on" : e?.a ? "dim" : ""}" data-act="sat" data-work="${W}"${DD} data-i="${i}" data-a="${k}" aria-pressed="${e?.a === k}"${e?.a && e.a !== k ? " disabled" : ""}>${esc(l)}</button>`).join("")}</div>
-      ${e?.a === "like" ? `<p class="tiny muted">좋아한 조합으로 기억할게요. 이 배우들이 나오는 조합을 앞에 보여 드려요.</p>` : ""}${why}</div>`; };
+      <button class="rcpick${nav ? " go" : ""} ${on ? "on" : ""}" data-act="selCombo" data-work="${W}"${DD}${nav ? ` data-nav="1"` : ""} data-i="${i}" aria-pressed="${on}">${on ? (nav ? "고른 조합 · 날짜 보기" : "고른 조합") : nav ? "이 조합으로 날짜 보기" : "이 조합 고르기"}</button>
+      <div class="satbox"><p class="satq"><b>이 조합 어때요?</b> <span class="satwhy">답하면 다음 추천에 반영돼요</span></p><div class="chips">${SAT.map(([k, l]) => `<button type="button" class="chip x ${e?.a === k ? "on" : e?.a ? "dim" : ""}" data-act="sat" data-work="${W}"${DD} data-i="${i}" data-a="${k}" aria-pressed="${e?.a === k}"${e?.a && e.a !== k ? " disabled" : ""}>${esc(l)}</button>`).join("")}</div>
+      ${e?.a === "like" ? `<p class="tiny muted">좋아한 조합으로 기억할게요. 이 배우들이 나오는 조합을 앞에 보여 드려요.</p>` : ""}${why}</div></div>`; };
   const more = sh.again ? `<p class="tiny muted">다시 추천은 한 번만 할 수 있어요</p>`
     : sh.list.length < 2 ? `<p class="tiny muted">이 조건에서는 조합이 하나뿐이에요</p>`
     : `<button class="btn ghost" data-act="recAgain" data-work="${W}"${DD}>다시 추천받기</button>`;
