@@ -4,7 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>PICKLE — 내 취향의 뮤지컬 찾기</title>
+<title>피클 뮤지컬 PICKLE — 내 취향의 뮤지컬 찾기</title>
+<!-- 검색·공유(2026-11-09, docs/261109_검색등록_홍보계획.md 3장). 이름 「피클 뮤지컬」·설명문은 초안(회의에서 확정하면 이 자리와 seo/ 만 고친다) -->
+<meta name="description" content="한 배역에 서너 명인 한국 뮤지컬, 내 취향에 맞는 캐스트 조합과 그 조합이 나오는 날짜를 찾아 줘요.">
+<link rel="canonical" href="https://pickle-musical.com/app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="피클 뮤지컬 PICKLE">
+<meta property="og:title" content="피클 뮤지컬 — 내 취향의 뮤지컬 찾기">
+<meta property="og:description" content="한 배역에 서너 명인 한국 뮤지컬, 내 취향에 맞는 캐스트 조합과 그 조합이 나오는 날짜를 찾아 줘요.">
+<meta property="og:url" content="https://pickle-musical.com/app/">
+<meta property="og:image" content="https://pickle-musical.com/app/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@pickle_musical">
+<!-- 검색엔진 소유 확인 코드는 등록할 때 받아서 여기에(네이버: naver-site-verification, 구글: google-site-verification) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 /* 페이지 전체 글꼴: 문화재돌봄체 Regular(문화재청(현 국가유산청) × 투게더그룹, 무료·상업 이용 가능, 웹사이트 임베딩 허용, 폰트 파일 수정·유료 판매 금지 → 배포 파일(woff)을 고치지 않고 그대로 둔다. 사용자 요청 2026-11-04). 굵기 100~500 은 Regular, 600 이상(굵은 글씨)은 Bold(사용자 요청 2026-11-04). 없는 글자는 다음 글꼴로 */
@@ -517,6 +532,12 @@ a.wcard:hover{border-color:var(--hl)}
 <link rel="stylesheet" href="app.css?v=20261105e">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
+<!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
+<section class="sronly" aria-label="피클 뮤지컬 소개">
+  <p>피클 뮤지컬(PICKLE)은 한국 뮤지컬의 캐스팅 조합을 내 취향에 맞춰 추천해 주는 서비스예요.</p>
+  <p>한 배역에 배우가 서너 명씩 번갈아 나오는 뮤지컬에서, 좋아하는 배우와 목소리·연기 취향을 고르면 잘 맞는 캐스트 조합과 그 조합이 나오는 공연 날짜를 찾아 줘요.</p>
+  <p>지금은 엘리자벳, 겨울왕국, 레베카, 스위니토드, 시카고의 회차별 캐스팅을 볼 수 있어요. 본 공연은 내 티켓에 기록하고 관람 리뷰를 남길 수 있어요.</p>
+</section>
 <div class="shell">
   <header class="top">
     <button id="back" aria-label="뒤로">‹</button>
@@ -542,7 +563,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611091408"></script>
+<script src="data.js?v=202611091428"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);

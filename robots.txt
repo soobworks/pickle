@@ -1,0 +1,5 @@
+# 피클 뮤지컬(pickle-musical.com). 배포 때 사이트 맨 위에 올라간다(deploy_pages.sh, docs/261109_검색등록_홍보계획.md 3장)
+User-agent: *
+Allow: /
+
+Sitemap: https://pickle-musical.com/sitemap.xml
