@@ -564,7 +564,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611091721"></script>
+<script src="data.js?v=202611091751"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2827,13 +2827,22 @@ const prepCardImg = () => { try { if (typeof document.querySelector !== "functio
 const CARD_FILE = "PICKLE_내취향카드.png";
 const saveCardImg = () => cardBlob().then(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = CARD_FILE; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); })  // 저장 알림(흰 토스트)은 띄우지 않는다(사용자 요청 2026-11-09)
   .catch(() => toast("이미지를 만들지 못했어요. 잠시 뒤 다시 눌러 주세요"));
-const shareCard = () => { const url = location.origin + location.pathname, text = `나의 뮤지컬 관극 취향: ${tasteTitle(S.prefs || {})} #PICKLE`, title = "PICKLE 내 취향 카드";
-  const copy = () => (navigator.clipboard?.writeText ? navigator.clipboard.writeText(`${text}\n${url}`) : Promise.reject()).then(() => toast("공유 문구와 링크를 복사했어요. SNS에 붙여 넣어 주세요"), () => toast("이 브라우저에서는 공유를 쓸 수 없어요. 저장하기로 이미지를 받아 올려 주세요"));
-  const go = data => navigator.share(data).catch(e => { if (e?.name !== "AbortError") copy(); });
-  const f = CARD_IMG.key === cardKey() && CARD_IMG.blob ? new File([CARD_IMG.blob], CARD_FILE, {type: "image/png"}) : null;  // 미리 만든 이미지가 있으면 누른 그 순간 바로 공유창
-  if (f && navigator.canShare?.({files: [f]})) return go({files: [f], title, text, url});
-  if (navigator.share) return go({title, text, url});
-  copy(); };
+const shareInfo = () => ({url: location.origin + location.pathname, text: `나의 뮤지컬 관극 취향: ${tasteTitle(S.prefs || {})} #PICKLE`, title: "PICKLE 내 취향 카드"});
+const shareCopy = () => { const {text, url} = shareInfo(); return (navigator.clipboard?.writeText ? navigator.clipboard.writeText(`${text}\n${url}`) : Promise.reject()).then(() => toast("공유 문구와 링크를 복사했어요. SNS에 붙여 넣어 주세요"), () => toast("이 브라우저에서는 공유를 쓸 수 없어요. 저장하기로 이미지를 받아 올려 주세요")); };
+const shareGo = data => navigator.share(data).catch(e => { if (e?.name !== "AbortError") shareCopy(); });
+const shareText = () => { const {title, text, url} = shareInfo(); return navigator.share ? shareGo({title, text, url}) : shareCopy(); };  // 문구·링크만(안드로이드 2단계 팝업에서도 씀)
+const shareCard = () => { const {url, text, title} = shareInfo(), copy = shareCopy, go = shareGo;
+  const android = /Android/i.test(navigator.userAgent || "");
+  const withFile = b => { const f = b ? new File([b], CARD_FILE, {type: "image/png"}) : null;
+    if (f && navigator.share && !navigator.canShare?.({files: [f]})) toast("이 브라우저는 카드 이미지를 같이 못 보내요. 저장하기로 받아 올려 주세요");  // 카톡 안 브라우저 등
+    if (!f || !navigator.canShare?.({files: [f]})) return navigator.share ? go({title, text, url}) : copy();
+    // 안드로이드는 이미지+글을 같이 넘기면 앱마다 하나만 보낸다(2026-11-09 혜원 님 폰: 크롬·삼성 인터넷은 글만, 네이버는 카드만)
+    // → 카드만 먼저 보내고, 끝나면 '문구·링크도 보내기' 팝업으로 한 번 더(공유창은 누를 때마다 한 번만 열 수 있어서 버튼이 필요)
+    if (android) return navigator.share({files: [f]}).then(() => { SHEET = {kind: "share2"}; renderSheet(); }, e => { if (e?.name !== "AbortError") go({title, text, url}); });
+    return go({files: [f], title, text, url}); };  // 아이폰: 카톡이 카드·링크·문구 3개로 보낸다(확인됨)
+  if (CARD_IMG.key === cardKey() && CARD_IMG.blob) return withFile(CARD_IMG.blob);  // 미리 만든 이미지가 있으면 누른 그 순간 바로 공유창
+  // 아직이면 최대 3초 기다렸다가 연다(공유창은 누른 뒤 몇 초 안에 열어야 해서). 못 만들면 문구·링크만
+  Promise.race([cardBlob(), new Promise(r => setTimeout(() => r(null), 3000))]).then(withFile, () => withFile(null)); };
 // 카드 앞면의 분류별 태그: 질문 하나 = 칸 하나. 문구는 온보딩 선택지 그대로
 const TK_GROUPS = {tone: "목소리", sing: "노래", act: "감정 표현", body: "움직임", role: "배역·대사", char: "인물 표현", view: "인물 해석", combo: "배우 호흡", etc: "그 외"};
 const tasteCells = p => {
@@ -3310,6 +3319,7 @@ const sheetBody = () => {
   if (SHEET.kind === "video") return videoSheetBody();
   if (SHEET.kind === "unplan") { const x = S.plans[SHEET.i]; if (!x) return "";  // 내 티켓 삭제 확인(사용자 요청 2026-11-09)
     return `<h3>이 공연을 삭제할까요?</h3><p class="ssub">${esc(x.work)} · ${ymdDot(x.date)}${x.time ? ` ${esc(x.time)}` : ""}</p><div class="nbgrid"><button type="button" class="nb" data-act="unplan" data-i="${SHEET.i}">삭제하기</button><button type="button" class="nb" data-act="closeSheet">취소</button></div>`; }
+  if (SHEET.kind === "share2") return `<h3>카드를 보냈어요. 문구와 링크도 보낼까요?</h3><p class="ssub">같은 대화방을 한 번 더 골라 주세요</p><div class="nbgrid"><button type="button" class="nb" data-act="shareText">문구·링크 보내기</button><button type="button" class="nb" data-act="closeSheet">닫기</button></div>`;  // 안드로이드 공유 2단계(shareCard)
   if (SHEET.kind === "duel") { const {work, cur} = SHEET;
     return `<h3>${esc(cur.role)}, 둘 중 누가 끌려요?</h3><p class="small muted">고른 결과는 이 작품의 추천 조합에 바로 반영돼요.</p><div class="duel">${duelSide(work, cur.role, cur.left)}${duelSide(work, cur.role, cur.right)}</div>
       <div class="duelb"><button class="chip" data-act="sheetDuel" data-r="left">왼쪽</button><button class="chip" data-act="sheetDuel" data-r="tie">비슷해요</button><button class="chip" data-act="sheetDuel" data-r="right">오른쪽</button></div>`; }
@@ -3503,7 +3513,8 @@ document.addEventListener("click", e => {
     case "rmAvoid": { const P = prefsOf(); P.avoid = (P.avoid || []).filter(a => a !== d.a); save(); route(); break; }
     case "tasteSkipAll": { prefsOf(); save(); location.hash = "#home"; break; }  // 취향을 한 번도 안 고르고 전체 목록으로
     case "meDone": { delete prefsOf().must; save(); snapTaste(); CARD_BACK = false; location.hash = "#home"; if (hasTaste(S.prefs)) toast("취향을 저장했어요"); break; }  // 내 취향 확인 버튼 → 홈 취향 카드(앞면)
-    case "tkShare": shareCard(); break;  // 홈 취향 카드 공유하기: 휴대폰은 공유창(SNS 앱), 못 쓰면 문구·링크 복사
+    case "tkShare": shareCard(); break;
+    case "shareText": closeSheet(); shareText(); break;  // 안드로이드 공유 2단계 팝업의 [문구·링크 보내기]  // 홈 취향 카드 공유하기: 휴대폰은 공유창(SNS 앱), 못 쓰면 문구·링크 복사
     case "tkSave": saveCardImg(); break;  // 홈 취향 카드 저장하기: 카드 한 장을 PNG 로
     case "cardFlip": flipCard(); break;  // 홈 취향 카드 뒤집기(포커스는 뒤집힌 면의 첫 버튼으로)
     case "obGo": { delete prefsOf().must; save(); snapTaste();
