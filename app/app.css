@@ -160,7 +160,7 @@ main:is([data-view=onboard],[data-view=taste]) .one{background:none;border:0;pad
 .hero .more>summary{color:var(--fg)}
 .hero .more{padding:0 20px 4px}
 .hero .hsrc{padding:0 20px 18px;margin:0}
-@media (min-width:640px){.hero-in{grid-template-columns:220px minmax(0,1fr);align-items:end;padding:26px 26px 10px;gap:24px;justify-items:stretch}.hero-poster{width:100%}.hero h1{font-size:30px}.hero .more,.hero .hsrc{padding-inline:26px}}
+@media (min-width:640px){.hero-in{grid-template-columns:220px minmax(0,1fr);align-items:start;padding:26px 26px 10px;gap:24px;justify-items:stretch}.hero-poster{width:100%}.hero h1{font-size:30px}.hero .more,.hero .hsrc{padding-inline:26px}}
 .more>summary{color:var(--fg);font-weight:600}
 .morebox{background:var(--bg);border-radius:12px;padding:14px}
 .hero .morebox .muted,.hero .morebox .tiny.muted{color:var(--muted)}
@@ -412,7 +412,7 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .pdmain .pdposter{width:100%}
 .pdright{display:grid;gap:10px;align-content:start;min-width:0}
 .pdright .pdticket{min-height:40px;font-size:14px}
-@media (max-width:599px){.pdinfo>div{grid-template-columns:minmax(0,1fr);gap:4px;padding:8px 0}}
+@media (max-width:599px){.pdmain{grid-template-columns:minmax(0,1fr)}.pdmain .pdposter{width:min(55%,200px)}}  /* 모바일: 포스터 아래로 정보(사용자 요청 2026-11-09) */
 @media (min-width:600px){.pdmain{grid-template-columns:240px minmax(0,1fr);gap:22px}.pdinfo>div{padding:12px 0}}
 /* 추천 근거 문장 속 배우 이름 */
 .why .rname{font-size:1.12em;font-weight:800;color:var(--fg)}
@@ -688,3 +688,20 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .betafoot .betabtn{flex:0 1 auto;width:auto}
 /* 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 화면에는 안 보임 */
 .sronly{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* 공연 정보 화면(2026-11-09): 포스터 박스 안 정보 표 — 위에서부터 채운다 */
+.hero-in{padding-bottom:22px}
+.hinfo{margin:4px 0 0;display:grid;gap:7px}
+.hinfo>div{display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;align-items:baseline}
+.hinfo dt{font-size:13px;font-weight:700;color:var(--fg);opacity:.72}
+.hinfo dd{margin:0;font-size:14px;line-height:1.5;color:var(--fg);overflow-wrap:anywhere}
+/* 관람 기록 버튼: 저장하기 8 : 건너뛰기 2 */
+.rvact{display:grid;grid-template-columns:4fr 1fr;gap:10px}
+.rvact .btn{width:100%;min-width:0}
+.rvact .rvskip{background:#000;border-color:#000;color:#fff}
+.rvact .rvskip:hover{background:#1A1A1A;border-color:#1A1A1A}
+/* 홈 배우 조합 추천받기: 큰 제목 · 진한 안내 · 다섯 포스터를 붉은 테두리로 묶음 */
+.pkworks .hhead h2{font-size:24px}
+.pkworks>.hsub{font-size:15px;font-weight:700;color:var(--fg)}
+.pkworks .pgrid{border:2px solid var(--accent);border-radius:16px;padding:14px}
+@media (min-width:600px){.pkworks .hhead h2{font-size:28px}.pkworks>.hsub{font-size:16px}.pkworks .pgrid{padding:18px}}

@@ -563,7 +563,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611091507"></script>
+<script src="data.js?v=202611091534"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1328,7 +1328,7 @@ const planDay = d => { PCAL_M = d.slice(0, 7);  // 캘린더로 돌아가면 이
         <div class="pcastrow"><dt>출연배우</dt><dd><span class="pcasts">${cast || "-"}</span>${cast && x.date <= from ? `<a class="btn crbtn${x.cr?.a || x.tagged ? " on" : ""}" href="#tag/${i}">배우 및 조합 평가</a>` : ""}</dd></div>
         <div class="pmemo"><dt><label for="pf-memo-${i}">리뷰</label></dt><dd><textarea id="pf-memo-${i}" data-pf="memo" data-i="${i}" rows="3" maxlength="2000" placeholder="그날의 감상이나 메모">${esc(pfv(x, "memo") || "")}</textarea>${trackUi() ? `<p class="tiny muted">리뷰도 기록으로 남아요. 연락처 같은 개인정보는 적지 마세요.</p>` : ""}</dd></div>
       </dl>
-      <div class="pdact"><button type="button" class="btn" data-act="pfSave" data-d="${x.date}">저장하기</button><button type="button" class="btn ghost" data-act="pfBack">나가기</button><button type="button" class="btn ghost" data-act="unplan" data-i="${i}">삭제하기</button></div>
+      <div class="pdact"><button type="button" class="btn" data-act="pfSave" data-d="${x.date}">저장하기</button><button type="button" class="btn ghost" data-act="pfBack">나가기</button><button type="button" class="btn ghost" data-act="unplanAsk" data-i="${i}">삭제하기</button></div>
     </article>`; };
   return `${head}${ps.map(item).join("")}`;
 };
@@ -1342,10 +1342,13 @@ const RV_GROUP_NAME = {"공통": "무대 전반"};  // 칩 묶음 제목(사전 
 const rvGroups = (D, names) => (D.actorTagGroups || []).filter(([g]) => names.includes(g.replace("배우 · ", "")));
 const rvDraft = (work, date, time, entry) => {  // 이어서 쓰는 초안. 이미 남긴 리뷰가 있으면 그걸 열어 고친다
   const k = [work, date, time].join("|"); if (S.proto?.rdraft?.k === k) return S.proto.rdraft;
-  const p = D.perfs.find(q => q.work === work && q.date === date && q.time === time), old = reviewOf(S, work, date, time); if (!p && !old) return null;
-  RV_MORE = {};
+  const p = D.perfs.find(q => q.work === work && q.date === date && q.time === time), old = reviewOf(S, work, date, time);
   const x = (S.plans || []).find(y => y.work === work && y.date === date && y.time === time);
-  return (S.proto ||= {}).rdraft = {k, entry, rv: old ? JSON.parse(JSON.stringify(old)) : newReview(D, p), swap: "", done: false, picks: [], cr: x?.cr ? {...x.cr} : null};
+  // 회차표에 없는 티켓(CSV·KOPIS·직접 등록, 2026-11-09): 티켓의 출연진으로 평가를 연다(배역을 모르면 배우 이름을 줄 이름으로)
+  const fromPlan = !p && !old && x && Object.keys(x.cast || {}).length ? (x.kopis && kopisShow(x.kopis) ? {...newKopisReview(kopisShow(x.kopis), date, time, {...x.cast}), work} : {work, ...(x.kopis ? {kopis: x.kopis} : {manual: true}), venue: planVenue(x), date, time: time || "", cast: {...x.cast}, rows: {}, combo: [], note: "", pub: false}) : null;
+  if (!p && !old && !fromPlan) return null;
+  RV_MORE = {};
+  return (S.proto ||= {}).rdraft = {k, entry, rv: old ? JSON.parse(JSON.stringify(old)) : fromPlan || newReview(D, p), swap: "", done: false, picks: [], cr: x?.cr ? {...x.cr} : null};
 };
 V.review = (work, date, time, entry = "log") => {
   if (work === undefined && S.proto?.rdraft) [work, date, time] = S.proto.rdraft.k.split("|");  // #review: KOPIS 공연 기록(제목에 '/'가 있을 수 있어 주소에 안 넣는다)
@@ -1374,7 +1377,7 @@ V.review = (work, date, time, entry = "log") => {
     <div class="card"><h3>더 남기고 싶은 말이 있나요? <span class="small muted">선택</span></h3><textarea id="rvnote" rows="3" placeholder="한 줄이어도 좋아요">${esc(rv.note)}</textarea>
       <div class="chips"><button type="button" class="chip x ${rv.pub ? "" : "on"}" data-act="rvPub" data-v="0" aria-pressed="${!rv.pub}">비공개</button><button type="button" class="chip x ${rv.pub ? "on" : ""}" data-act="rvPub" data-v="1" aria-pressed="${rv.pub}">공개</button></div>
       <p class="tiny muted">${rv.pub ? "공개하면 다른 사람의 추천 근거 문장에 이름 없이 보일 수 있어요" : "비공개 글은 나만 볼 수 있어요"}</p></div>
-    <div class="between"><button class="chip x" data-act="rvSkip">건너뛰기</button><button class="btn" data-act="rvSave">저장</button></div></div>`;
+    <div class="rvact"><button class="btn" data-act="rvSave">저장하기</button><button class="btn rvskip" data-act="rvSkip">건너뛰기</button></div></div>`;  // 8:2, 왼쪽 저장하기(붉은색) · 오른쪽 건너뛰기(검은색)(사용자 요청 2026-11-09)
 };
 // 본 공연 기록하기(docs/261027_2 11.2절): 누구나. 작품 → 지난 회차(날짜·시각)를 고르면 그 회차 캐스트로 리뷰를 연다. 이미 남긴 회차는 그 기록을 열어 고친다
 // 사용자 요청(2026-10-28): MVP 작품 밖 KOPIS 공연도 기록한다. 제목 검색 칸 + 포스터 격자. KOPIS 공연은 회차별 출연진이 없어서 날짜·시각을 적고 나온 배우를 고른다(#log/k/공연ID)
@@ -2903,7 +2906,7 @@ const pickleShow = x => x.kind === "seed" && x.sched;  // 피클 조합 추천 �
 const homeWorks = from => {
   const ws = MVP_WORKS(from).filter(w => workState(w, from).ok);
   const all = allShows(D, from), tabs = regionTabs(all), tab = tabs.some(([k]) => k === S.proto?.areaTab) || S.proto?.areaTab === "pickle" ? S.proto.areaTab : "all";
-  return `${ws.length ? `<section class="hsec"><div class="hhead"><h2>배우 조합 추천받기</h2><a class="small" href="#find">전체</a></div><p class="hsub">회차별 캐스팅이 공개된 작품이에요. 누르면 나에게 맞는 조합을 찾아 드려요</p>
+  return `${ws.length ? `<section class="hsec pkworks"><div class="hhead"><h2>배우 조합 추천받기</h2><a class="small" href="#find">전체</a></div><p class="hsub">회차별 캐스팅이 공개된 작품이에요. 누르면 나에게 맞는 조합을 찾아 드려요</p>
     <div class="pgrid">${ws.map(w => `<a class="pcard" href="#find/${esc(w.name)}"><div class="pimg">${posterEl(w, "pi")}${workState(w, from).text ? `<span class="pstate">${esc(workState(w, from).text)}</span>` : ""}</div><span class="pt">${esc(w.name)}</span><span class="pw">${esc(runsOf(w.name)[0]?.venue || "")}</span></a>`).join("")}</div></section>` : ""}
   ${all.length ? `<section class="hsec hall"><div class="hhead"><h2>지금 하는 공연 전체<span class="count">${all.length}개</span></h2><input id="homeq" class="homeq" type="search" placeholder="공연 제목 검색" aria-label="공연 제목으로 찾기" autocomplete="off" value="${esc(HOME_Q)}"></div>
     ${tabs.length > 1 || all.some(pickleShow) ? `<div class="chips afilter" role="group" aria-label="지역">${[tabs[0], ["pickle", "피클 조합 추천 가능한 공연", all.filter(pickleShow).length], ...tabs.slice(1)].map(([k, l, n]) => `<button type="button" class="chip ${tab === k ? "on" : ""}${k === "pickle" ? " pkchip" : ""}" data-act="areaTab" data-t="${esc(k)}" aria-pressed="${tab === k}">${esc(l)} ${n}</button>`).join("")}</div>` : ""}
@@ -3230,29 +3233,40 @@ const plainDates = ref => { const si = ref.kind === "seed" ? (D.seedInfo || {})[
   return `<section id="dates" class="sec"><h2>공연 시간 · 예매</h2><div class="card">${times ? `<p class="small">${esc(times)}</p>` : `<p class="small muted">공연 시간은 예매처에서 확인하세요.</p>`}<p class="small"><b>${ref.kind === "current" && ref.s.noCast ? "자세한 정보는 예매처에서 확인하세요." : "날짜별 캐스팅은 예매처에서 확인하세요."}</b></p><div style="display:grid;gap:8px">${ticketLinks(ref)}</div>
     ${ref.kind === "seed" ? `<p class="tiny muted">이 작품은 날짜별 캐스팅이 아직 없어요.</p>` : ""}</div></section>`; };
 
-// 공연 정보 화면(사용자 요청 2026-11-09): 추천과 상관없이 공연 정보만. 출연진은 배역별 한 줄(같은 배역 배우를 나란히), 스케줄표의 배역 전부.
-// 배우 태그·목소리 정보·'아직 정보가 없어요' 안내는 보이지 않는다. KOPIS 만 있는 공연은 배역 정보가 없어 이름만 한 줄
-const infoCast = ref => {
-  if (ref.kind === "current") {
-    if (ref.s.noCast || !ref.s.cast?.length) return `<section id="cast" class="sec"><h2>출연진</h2><div class="card"><p class="small muted">출연진은 예매처에서 확인하세요.</p></div></section>`;
-    const key = ref.key, sel = S.proto?.asel?.[key] || "";
-    return `<section id="cast" class="sec"><h2>출연진</h2><div class="card"><p class="small">${ref.s.cast.map(esc).join(" · ")}</p></div>
-      <details class="more" ${sel ? "open" : ""}><summary>이 배우, 내 취향이었나요? (선택)</summary><div class="morebox"><div class="chips">${ref.s.cast.map(a => `<button class="chip x ${sel === a ? "on" : ""}" data-act="actorSel" data-show="${esc(key)}" data-a="${esc(a)}">${esc(a)}</button>`).join("")}</div>
-        ${sel ? ratingBox({key: `actor|${key}|${sel}`, kind: "actor", title: `${sel}, 내 취향이었나요?`, lo: "안 맞아요", hi: "딱 맞아요", show: key, actor: sel, actors: [sel]}) : ""}</div></details></section>`; }
+// 공연 정보 화면(사용자 요청 2026-11-09): 추천과 상관없이 공연 정보만. 포스터 박스 안에 제목·장소·공연 기간·공연 시간·관람 연령·러닝타임·가격(위에서부터 채운다),
+// 출연진은 스케줄표가 없는 공연(KOPIS)은 박스 안에 이름만, 스케줄표가 있는 MVP 작품은 박스 바로 아래에 배역마다 한 줄. 예매처는 박스 밖 아래. 배우 태그·평가 칸 없음
+const infoHero = ref => {
+  const seed = ref.kind === "seed", si = seed ? (D.seedInfo || {})[ref.key] || {} : ref.s, runs = seed ? runsOf(ref.key) : [];
+  const url = seed ? ref.w.poster : ref.s.poster, nr = seed ? "" : ` referrerpolicy="no-referrer"`;
+  const bg = url ? `<img class="hero-bg" src="${esc(url)}" alt="" aria-hidden="true"${nr}>` : "";
+  const poster = seed ? posterEl(ref.w, "hp") : curPoster(ref.s, "hp"), title = seed ? ref.key : ref.s.title, lab = r => runs.length > 1 || /STAGE/i.test(r.label) ? `<b>${esc(r.label)}</b> ` : "";
+  const later = "예매처에서 확인";
+  const rows = [
+    ["장소", seed ? [...new Set(runs.map(r => r.venue))].map(esc).join(" / ") : esc(ref.s.venue || "")],
+    ["공연 기간", seed ? runs.map(r => `${lab(r)}${fmtPeriod(r)}`).join("<br>") : `${md(ref.s.start)} ~ ${ref.s.end.slice(0, 4) !== ref.s.start.slice(0, 4) ? ref.s.end.slice(0, 4) + " " : ""}${md(ref.s.end)}${ref.s.status ? ` · ${esc(ref.s.status)}` : ""}`],
+    ["공연 시간", esc(si.times || later)],
+    ["관람 연령", esc(si.age || later)],
+    ["러닝타임", esc(si.runtime || later)],
+    ["가격", seed ? (runs.filter(r => r.prices?.length).map(r => `${lab(r)}${r.prices.map(([g, p]) => `${esc(g)} ${won(p)}`).join(" · ")}`).join("<br>") || later) : esc(si.price || later)],
+    ...(seed ? [] : [["출연진", ref.s.noCast || !ref.s.cast?.length ? later : ref.s.cast.map(esc).join(" · ")]])];
+  const chips = moodChips(ref);
+  return `<div class="hero" id="summary">${bg}
+    <div class="hero-in"><div class="hero-poster">${poster}</div>
+      <div class="hero-txt"><h1>${esc(title)}</h1><dl class="hinfo">${rows.filter(([, v]) => v).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>${chips.length ? `<div class="chips">${chips.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}</div></div></div>`;
+};
+const infoCast = ref => {  // MVP 작품(스케줄표 있음)만: 배역마다 한 줄, 같은 배역 배우를 나란히
   const roles = (D.roles[ref.key] || []).filter(r => r.cast.length);
   return `<section id="cast" class="sec"><h2>출연진</h2><div class="card">${roles.length ? roles.map(r => `<div class="tl"><span class="tlab">${esc(r.role)}</span><span class="small">${r.cast.map(esc).join(" · ")}</span></div>`).join("") : `<p class="small muted">출연진은 예매처에서 확인하세요.</p>`}</div></section>`;
 };
-const infoDates = ref => {
-  if (ref.kind !== "seed") return plainDates(ref);
-  const si = (D.seedInfo || {})[ref.key] || {}, w = workOf(ref.key), ok = w && workState(w, today()).ok;
-  return `<section id="dates" class="sec"><h2>공연 시간 · 예매</h2><div class="card">${si.times ? `<p class="small">${esc(si.times)}</p>` : `<p class="small muted">공연 시간은 예매처에서 확인하세요.</p>`}<div style="display:grid;gap:8px">${ticketLinks(ref)}</div></div>
-    ${ok ? `<a class="btn" href="#find/${esc(ref.key)}">이 작품 배우 조합 추천받기</a>` : ""}</section>`;
+const infoDates = ref => {  // 박스 밖 아래: 예매처(+ MVP 작품은 배우 조합 추천받기)
+  const w = ref.kind === "seed" && workOf(ref.key), ok = w && workState(w, today()).ok;
+  return `<section id="dates" class="sec"><div style="display:grid;gap:8px">${ticketLinks(ref)}</div>${ok ? `<a class="btn" href="#find/${esc(ref.key)}">이 작품 배우 조합 추천받기</a>` : ""}</section>`;
 };
 V.show = key => {
   const ref = showRef(D, key); if (!ref) return V.home();
   Object.keys(RATE_CTX).forEach(k => delete RATE_CTX[k]);
   CTA = null;
-  return `<div class="one sv">${summaryCard(ref, null)}${infoCast(ref)}${infoDates(ref)}</div>`;
+  return `<div class="one sv">${infoHero(ref)}${ref.kind === "seed" ? infoCast(ref) : ""}${infoDates(ref)}</div>`;
 };
 // 옛 주소(#works/#pick/#result/#when/#cshow/#onboard/#cal/#day)는 새 화면으로 간다. 회차 달력은 추천 조합에서 고른 조합의 캘린더(#find/작품/cal)
 V.works = () => V.home();
@@ -3291,6 +3305,8 @@ function renderSheet() {
 const sheetBody = () => {
   if (SHEET.kind === "beta") return `<h3>${BETA_TEXT}</h3>${betaLink("설문 열기")}<button type="button" class="btn ghost" data-act="closeSheet">닫기</button>`;
   if (SHEET.kind === "video") return videoSheetBody();
+  if (SHEET.kind === "unplan") { const x = S.plans[SHEET.i]; if (!x) return "";  // 내 티켓 삭제 확인(사용자 요청 2026-11-09)
+    return `<h3>이 공연을 삭제할까요?</h3><p class="ssub">${esc(x.work)} · ${ymdDot(x.date)}${x.time ? ` ${esc(x.time)}` : ""}</p><div class="nbgrid"><button type="button" class="nb" data-act="unplan" data-i="${SHEET.i}">삭제하기</button><button type="button" class="nb" data-act="closeSheet">취소</button></div>`; }
   if (SHEET.kind === "duel") { const {work, cur} = SHEET;
     return `<h3>${esc(cur.role)}, 둘 중 누가 끌려요?</h3><p class="small muted">고른 결과는 이 작품의 추천 조합에 바로 반영돼요.</p><div class="duel">${duelSide(work, cur.role, cur.left)}${duelSide(work, cur.role, cur.right)}</div>
       <div class="duelb"><button class="chip" data-act="sheetDuel" data-r="left">왼쪽</button><button class="chip" data-act="sheetDuel" data-r="tie">비슷해요</button><button class="chip" data-act="sheetDuel" data-r="right">오른쪽</button></div>`; }
@@ -3612,7 +3628,8 @@ document.addEventListener("click", e => {
     case "closeSheet": closeSheet(); break;
     case "runQuery": { const st = S.cal[d.work]; if (!st?.count) { toast("조건에 맞는 회차가 없어요"); return; } S.query = {work: d.work, lo: st.lo, hi: st.hi, actors: st.actors, dates: st.dates || []}; save(); location.hash = "#result"; break; }
     case "plan": { const p = D.perfs.find(x => x.work === d.work && x.date === d.date && x.time === d.time); if (!p) return; if (isPrivate(p)) { toast("단체 대관 공연이라 일반 예매가 안 돼요"); return; } finishPending("plan", p); break; }  // 바로 담는다(별점 시트 없음)
-    case "unplan": S.plans.splice(+d.i, 1); save(); route(); break;
+    case "unplanAsk": if (!S.plans[+d.i]) return; SHEET = {kind: "unplan", i: +d.i}; renderSheet(); break;  // 삭제하기 → 확인 팝업
+    case "unplan": if (SHEET) closeSheet(true); S.plans.splice(+d.i, 1); save(); route(); break;
     case "csvReset": CSV = null; route(); break;
     case "csvDel": { const k = +d.k; if (!CSV?.rows?.[k]) return; CSV.rows.splice(k, 1); CSV.removed = (CSV.removed || 0) + 1; route(); break; }  // 미리 보기에서 뮤지컬이 아닌 공연 빼기(사용자 요청 2026-11-05)
     case "csvGo": { if (!CSV?.rows) return; const from = today(), add = CSV.rows.filter(r => !csvDup(r)).map(r => csvPlan(r, from)); if (!add.length) return;
