@@ -220,9 +220,10 @@ details li span{color:var(--fg)}
 .tabs a.on{color:var(--hl);font-weight:700}
 .tabs a .ico{filter:grayscale(1);opacity:.7}.tabs a.on .ico{filter:none;opacity:1}
 .tabs a .ico{display:block;font-size:18px}
-.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30;width:max-content;max-width:calc(100vw - 32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}  /* 알림 문구는 한 줄(사용자 요청 2026-10-29) */
-.toast.show{opacity:1}
-.undobar{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:var(--fg);color:var(--bg);padding:8px 8px 8px 16px;border-radius:999px;font-size:14px;z-index:31;width:max-content;max-width:calc(100vw - 32px)}
+.toast{position:fixed;left:16px;right:16px;margin-inline:auto;bottom:84px;box-sizing:border-box;background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:16px;font-size:14px;line-height:1.45;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30;width:max-content;max-width:min(460px,calc(100vw - 32px));white-space:normal;word-break:keep-all;overflow-wrap:break-word;box-shadow:0 6px 20px rgba(0,0,0,.35)}  /* 알림 문구는 잘리지 않게: 길면 낱말 단위로 줄을 바꾸고 흰 바탕이 글 전체를 감싼다(사용자 요청 2026-11-09, 예전엔 한 줄로 자르기) */
+.toast.show{opacity:1;display:block}  /* 공연 줄 .show(56px 두 칸 grid)와 이름이 겹쳐 알림이 좁은 칸에 갇히던 것(2026-11-09) */
+.undobar{position:fixed;left:16px;right:16px;margin-inline:auto;bottom:84px;box-sizing:border-box;display:flex;align-items:center;gap:10px;background:var(--fg);color:var(--bg);padding:8px 8px 8px 16px;border-radius:16px;font-size:14px;line-height:1.45;z-index:31;width:max-content;max-width:min(460px,calc(100vw - 32px));box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.undobar span{min-width:0;word-break:keep-all;overflow-wrap:break-word}
 .undobar button{white-space:nowrap;flex:none;background:transparent;border:1px solid currentColor;color:inherit;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 .pwrap{position:relative;min-width:0;scroll-snap-align:start}
 .pmore{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:999px;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;font-family:inherit}
@@ -563,7 +564,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611091615"></script>
+<script src="data.js?v=202611091638"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2824,7 +2825,7 @@ const cardBlob = () => { const key = cardKey(); if (CARD_IMG.key === key && (CAR
 const prepCardImg = () => { try { if (typeof document.querySelector !== "function" || !document.head || typeof HTMLCanvasElement === "undefined") return;  // 화면이 그려진 뒤에 만든다
   setTimeout(() => { try { if (document.querySelector(".tk.front")) cardBlob().catch(() => {}); } catch (e) {} }, 600); } catch (e) {} };
 const CARD_FILE = "PICKLE_내취향카드.png";
-const saveCardImg = () => cardBlob().then(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = CARD_FILE; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("취향 카드를 이미지로 저장했어요"); })
+const saveCardImg = () => cardBlob().then(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = CARD_FILE; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); })  // 저장 알림(흰 토스트)은 띄우지 않는다(사용자 요청 2026-11-09)
   .catch(() => toast("이미지를 만들지 못했어요. 잠시 뒤 다시 눌러 주세요"));
 const shareCard = () => { const url = location.origin + location.pathname, text = `나의 뮤지컬 관극 취향: ${tasteTitle(S.prefs || {})} #PICKLE`, title = "PICKLE 내 취향 카드";
   const copy = () => (navigator.clipboard?.writeText ? navigator.clipboard.writeText(`${text}\n${url}`) : Promise.reject()).then(() => toast("공유 문구와 링크를 복사했어요. SNS에 붙여 넣어 주세요"), () => toast("이 브라우저에서는 공유를 쓸 수 없어요. 저장하기로 이미지를 받아 올려 주세요"));
