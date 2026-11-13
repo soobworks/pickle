@@ -705,3 +705,8 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .pkworks>.hsub{font-size:15px;font-weight:700;color:var(--fg)}
 .pkworks .pgrid{border:2px solid var(--accent);border-radius:16px;padding:14px}
 @media (min-width:600px){.pkworks .hhead h2{font-size:28px}.pkworks>.hsub{font-size:16px}.pkworks .pgrid{padding:18px}}
+/* 버튼 한 줄(사용자 요청 2026-11-13): 첫 화면 개인정보 안내의 [확인]·[자세히 보기·기록 끄기], 내 취향 > 내 데이터의 [로그아웃]·[내 데이터 모두 지우기]를 나란히 한 줄로, 글자는 가운데·줄바꿈 없음 */
+@media (max-width:719px){.notices .chips{flex-wrap:nowrap}.notices .chips>.btn,.notices .chips>.chip{flex:1 1 auto;width:auto;min-width:0;padding-inline:12px;white-space:nowrap;text-align:center;justify-content:center}}
+#acct>.nbgrid{display:flex;gap:8px}
+#acct>.nbgrid>.nb{flex:1 1 auto;width:auto;white-space:nowrap;text-align:center;justify-content:center}
+@media (max-width:380px){.notices .chips>.btn{font-size:14px;padding-inline:10px}}

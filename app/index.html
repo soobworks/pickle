@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>피클 뮤지컬 PICKLE — 내 취향의 뮤지컬 찾기</title>
+<title>피클 뮤지컬 PICKLE — 내 취향의 뮤지컬 캐스팅 조합 찾기</title>
 <!-- 검색·공유(2026-11-09, docs/261109_검색등록_홍보계획.md 3장). 이름 「피클 뮤지컬」·설명문은 초안(회의에서 확정하면 이 자리와 seo/ 만 고친다) -->
-<meta name="description" content="한 배역에 서너 명인 한국 뮤지컬, 내 취향에 맞는 캐스트 조합과 그 조합이 나오는 날짜를 찾아 줘요.">
+<meta name="description" content="내 취향을 입력하고 배우 조합을 추천받아요">
 <link rel="canonical" href="https://pickle-musical.com/app/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="피클 뮤지컬 PICKLE">
-<meta property="og:title" content="피클 뮤지컬 — 내 취향의 뮤지컬 찾기">
-<meta property="og:description" content="한 배역에 서너 명인 한국 뮤지컬, 내 취향에 맞는 캐스트 조합과 그 조합이 나오는 날짜를 찾아 줘요.">
+<meta property="og:title" content="피클 뮤지컬 — 내 취향의 뮤지컬 캐스팅 조합 찾기">
+<meta property="og:description" content="내 취향을 입력하고 배우 조합을 추천받아요">
 <meta property="og:url" content="https://pickle-musical.com/app/">
 <meta property="og:image" content="https://pickle-musical.com/app/img/og.png">
 <meta property="og:image:width" content="1200">
@@ -564,7 +564,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611091751"></script>
+<script src="data.js?v=202611131318"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3352,7 +3352,9 @@ const noticeSendOk = () => (S.proto?.notice || "") >= NOTICE_SEND;  // 날짜 �
 const recNoticeOn = () => trackUi() && !TRK.isOff() && S.proto?.notice !== NOTICE_VER;
 const syncNoticeOn = () => !!SYNC_CFG && (S.proto?.syncNotice || "") !== SYNC_CFG.since;
 const pullHintOn = () => canPullHere() && !pullOff() && !hasContent(S);
-const homeNotices = () => {
+// 검색 로봇에게는 홈 알림(개인정보 안내)을 그리지 않는다(사용자 요청 2026-11-13): 네이버가 설명 태그 대신 이 알림 문장을 검색 결과 설명으로 가져가서. 사람에게는 그대로 보인다
+const SEARCH_BOT = /Yeti|NaverBot|Googlebot|Google-InspectionTool|bingbot|Daum|DuckDuckBot|Applebot|Baiduspider|YandexBot|facebookexternalhit|kakaotalk-scrap|Twitterbot|Slurp/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "");
+const homeNotices = () => { if (SEARCH_BOT) return "";
   const rec = recNoticeOn(), sync = syncNoticeOn(), pull = pullHintOn();
   if (!rec && !sync && !pull) return "";
   const top = rec || sync ? `<div class="nsec">
