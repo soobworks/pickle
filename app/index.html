@@ -567,7 +567,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611132138"></script>
+<script src="data.js?v=202611132353"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2773,9 +2773,10 @@ const flipCard = () => {
 const tasteTags = p => (p.axes || []).map(k => k.startsWith("tag:") ? k.slice(4) : D.axes.flatMap(a => [[a.left, a.l], [a.right, a.r]]).find(([x]) => x === k)?.[1] || k);
 // 내 취향 줄글 요약(사용자 요청 2026-11-03): 본진·애정 배우와 고른 답을 모아 '당신은 ○○ 무대를 좋아하는 관객이에요' 한 문장. 규칙으로 만들고 점수·진단이 아니다. 고른 게 없으면 ""
 const tasteLabels = p => ONBOARD_QS.flatMap(q => q.opts.filter(([, t]) => (p.axes || []).includes(tagKey(t))).map(([l]) => l));
-const tasteSentence = p => {
+// 문장 재료: who(본진·애정 배우) + stage(무대 꾸밈말). 고른 게 없으면 null. 내 취향 탭 문장(tasteSentence)과 홈 카드 문장(cardLine)이 같이 쓴다
+const tasteParts = p => {
   const [bon, love] = favSplit(p), labels = tasteLabels(p), t = new Set(tasteTags(p)), has = (...xs) => xs.some(x => t.has(x));
-  if (!bon.length && !love.length && !labels.length && !p.prio) return "";
+  if (!bon.length && !love.length && !labels.length && !p.prio) return null;
   const stage = p.prio === "노래" && has("감정 전달형", "섬세한 가창 표현") ? "감정이 노래에 실리는"
     : has("고음", "성량") ? "목소리가 공간을 가득 채우는"
     : has("절제된 연기", "섬세한 내면형") ? "섬세한 감정선이 살아 있는"
@@ -2799,8 +2800,9 @@ const tasteSentence = p => {
     : p.prio === "노래" ? "노래가 중심인" : p.prio === "연기" ? "연기와 캐릭터가 살아 있는" : p.prio === "고루" ? "노래·연기·몸짓이 고루 어우러진" : "좋아하는 배우가 빛나는";
   // 본진은 '가장 좋아하고', 애정은 '선호하는'. 여러 명이어도 줄이지 않고 전부 쓴다(사용자 요청 2026-11-05)
   const who = bon.length && love.length ? `${bon.join("·")} 배우를 가장 좋아하고 ${love.join("·")} 배우를 선호하는, ` : bon.length ? `${bon.join("·")} 배우를 가장 좋아하는, ` : love.length ? `${love.join("·")} 배우를 선호하는, ` : "";
-  return `당신은 ${who}${stage} 무대를 좋아하는 관객이에요.`;
+  return {who, stage};
 };
+const tasteSentence = p => { const x = tasteParts(p); return x ? `당신은 ${x.who}${x.stage} 무대를 좋아하는 관객이에요.` : ""; };
 const tasteSum = (p, open, editHref, closeHref, note = "") => { const s = tasteSentence(p), labels = tasteLabels(p).slice(0, 6);
   return `<section class="card mesum">${s ? `<p class="mesent">${esc(s)}</p>${labels.length ? `<div class="chips">${labels.map(l => `<span class="tag">${esc(l)}</span>`).join("")}</div>` : ""}`
     : `<p class="mesent">아직 고른 취향이 없어요.</p><p class="small muted">좋아하는 배우와 공연에서 기대하는 점을 고르면 그에 맞는 캐스팅 조합을 추천해 드려요.</p>`}${note}
@@ -2830,7 +2832,8 @@ const loadH2C = () => H2C ||= new Promise((ok, no) => { if (window.html2canvas) 
   const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
   s.onload = () => ok(window.html2canvas); s.onerror = () => { H2C = null; no(new Error("html2canvas")); }; document.head.appendChild(s); });
 // 카드 대표 문장 = 내 취향 탭과 같은, 고른 취향을 모두 모은 한 문장(사용자 요청 2026-11-13: 홈 카드에 '나만의 관극 취향을 담은 카드'만 보이던 것)
-const cardLine = p => tasteSentence(p) || tasteTitle(p);
+// 홈 카드는 '당신은'·'~이에요' 없이 '…관객'으로 끝낸다(사용자 요청 2026-11-13)
+const cardLine = p => { const x = tasteParts(p); return x ? `${x.who}${x.stage} 무대를 좋아하는 관객` : tasteTitle(p); };
 const cardKey = () => JSON.stringify([S.prefs, cardLine(S.prefs || {})]);
 const cardBlob = () => { const key = cardKey(); if (CARD_IMG.key === key && (CARD_IMG.blob || CARD_IMG.job)) return CARD_IMG.blob ? Promise.resolve(CARD_IMG.blob) : CARD_IMG.job;
   const el = document.querySelector(".tk.front"); if (!el) return Promise.resolve(null);
