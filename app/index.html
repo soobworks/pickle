@@ -529,15 +529,15 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261113a">
-<link rel="stylesheet" href="app.css?v=20261113a">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261113b">
+<link rel="stylesheet" href="app.css?v=20261113b">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
 <section class="sronly" aria-label="피클 뮤지컬 소개">
   <p>피클 뮤지컬(PICKLE)은 한국 뮤지컬의 캐스팅 조합을 내 취향에 맞춰 추천해 주는 서비스예요.</p>
   <p>한 배역에 배우가 서너 명씩 번갈아 나오는 뮤지컬에서, 좋아하는 배우와 목소리·연기 취향을 고르면 잘 맞는 캐스트 조합과 그 조합이 나오는 공연 날짜를 찾아 줘요.</p>
-  <p>지금은 엘리자벳, 겨울왕국, 레베카, 스위니토드, 시카고의 회차별 캐스팅을 볼 수 있어요. 본 공연은 내 티켓에 기록하고 관람 리뷰를 남길 수 있어요.</p>
+  <p>지금은 엘리자벳·겨울왕국·레베카·스위니토드·시카고와 오페라의 유령·로미오와 줄리엣 등 대학로 작품까지 27개 작품의 회차별 캐스팅을 볼 수 있어요. 본 공연은 내 티켓에 기록하고 관람 리뷰를 남길 수 있어요.</p>
 </section>
 <div class="shell">
   <header class="top">
@@ -565,7 +565,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611131625"></script>
+<script src="data.js?v=202611131938"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -739,7 +739,7 @@ const KR_HOLIDAYS = new Set(["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-
   "2027-01-01", "2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09", "2027-03-01", "2027-05-05", "2027-05-13", "2027-06-06", "2027-08-15", "2027-08-16",
   "2027-09-14", "2027-09-15", "2027-09-16", "2027-10-03", "2027-10-04", "2027-10-09", "2027-10-11", "2027-12-25", "2027-12-27"]);
 const redDay = d => { const w = new Date(d + "T00:00:00").getDay(); return w === 0 || w === 6 || KR_HOLIDAYS.has(d); };  // 토·일·공휴일
-const posterEl = (w, cls = "poster") => w.poster ? `<img class="${cls}" src="${esc(w.poster)}" alt="${esc(w.name)} 포스터">` : `<div class="${cls} type" style="--accent:${esc(w.accent)}">${esc(w.name)}</div>`;
+const posterEl = (w, cls = "poster") => w.poster ? `<img class="${cls}" src="${esc(w.poster)}" alt="${esc(w.name)} 포스터"${/^https?:/.test(w.poster) ? ` referrerpolicy="no-referrer"` : ""}>` : `<div class="${cls} type" style="--accent:${esc(w.accent)}">${esc(w.name)}</div>`;
 function whenTile(p) {
   const badges = p.notes.filter(n => /첫공|막공|폐막|프리뷰|마티네|스윙/.test(n)).map(n => `<span class="badge">${esc(n.length > 14 ? n.slice(0, 12) + "…" : n)}</span>`).join("") + groupBadge(p);
   return `<div class="when"><div class="d">${md(p.date)}</div><div class="w">${esc(p.dow)}요일</div><div class="t">${esc(p.time)}</div>${badges}</div>`;
@@ -1217,7 +1217,7 @@ V.saved = i => {
   const x = S.plans[+i]; if (!x) return V.plans();
   const run = runOf(x.work, x.date) || {}, w = workOf(x.work), booked = planStatus(x) === "booked";
   return `
-    <div class="svtop">${w?.poster ? `<img class="svposter${booked ? "" : " gray"}" src="${esc(w.poster)}" alt="${esc(x.work)} 포스터">` : ""}
+    <div class="svtop">${w?.poster ? `<img class="svposter${booked ? "" : " gray"}" src="${esc(w.poster)}" referrerpolicy="no-referrer" alt="${esc(x.work)} 포스터">` : ""}
       <p class="eyebrow">${PLAN_STATUS[planStatus(x)]}</p><h1 class="svh">캘린더에 담았어요</h1>
       <p class="small muted">${booked ? "예매했어요로 표시돼 있어요." : "보고싶어요로 담았어요. 아직 예매 전이라 포스터를 흑백으로 표시해요. 예매하고 나면 예매했어요로 바꿔 주세요."}</p></div>
     <div class="card">
@@ -1265,8 +1265,8 @@ const pcalCell = (d, from) => {
   const href = !ps.length && d <= from ? `#log/d/${d}` : `#plans/${d}`;  // 일정이 없는 지난 날짜 → 그날 본 공연 기록하기(2026-11-03)
   // 하루에 둘 이상이면 칸을 세로로 나눠 시간 순서대로 포스터(사용자 요청 2026-11-05). 칸이 작아 4편까지, 넘으면 +N
   const byTime = [...ps].sort(([a], [b]) => (a.time || "").localeCompare(b.time || "")), parts = byTime.slice(0, CSPLIT_MAX);
-  const part = ([y]) => { const pp = planPoster(y); return `<span class="cpart ${planStatus(y)}">${pp ? `<img src="${esc(pp)}" alt="" loading="lazy">` : `<span class="cw">${esc(y.work)}</span>`}</span>`; };
-  const body = ps.length > 1 ? `<span class="csplit" style="--n:${parts.length}">${parts.map(part).join("")}</span>` : poster ? `<img src="${esc(poster)}" alt="" loading="lazy">` : x ? `<span class="cw">${esc(x.work)}</span>` : "";
+  const part = ([y]) => { const pp = planPoster(y); return `<span class="cpart ${planStatus(y)}">${pp ? `<img src="${esc(pp)}" referrerpolicy="no-referrer" alt="" loading="lazy">` : `<span class="cw">${esc(y.work)}</span>`}</span>`; };
+  const body = ps.length > 1 ? `<span class="csplit" style="--n:${parts.length}">${parts.map(part).join("")}</span>` : poster ? `<img src="${esc(poster)}" referrerpolicy="no-referrer" alt="" loading="lazy">` : x ? `<span class="cw">${esc(x.work)}</span>` : "";
   return `<a class="${cls}${ps.length > 1 ? " multi" : ""}" href="${href}" aria-label="${esc(label)}${href.startsWith("#log") ? " · 본 공연 기록하기" : ""}">${body}<span class="cn">${n}</span>${ps.length > CSPLIT_MAX ? `<span class="cmore">+${ps.length - CSPLIT_MAX}</span>` : ""}</a>`;
 };
 const agendaRow = ([x, i]) => { const pp = planPoster(x);
@@ -2290,7 +2290,7 @@ const R = {
     return out;
   },
 };
-const R_CAST = R.dict(R.inSet("roles"), R.inSet("actors"), 8);  // 배역 → 배우(핵심 배역 전체, 레베카 7개)
+const R_CAST = R.dict(R.inSet("roles"), R.inSet("actors"), 12);  // 배역 → 배우(핵심 배역 전체, 로미오와 줄리엣 11개 — 2026-11-13 작품 늘림)
 const R_CHIPS = R.arr(8, R.obj({chip: R.oneOf(CHIP_CODES), dir: R.oneOf(["+", "-"]), actors: R.arr(4, R.inSet("actors"))}, ["chip", "dir"]));  // [{chip, dir(+끌린 점 / -안 맞은 점), actors}]
 const R_RUN = R.inSet("runs"), R_WORK = R.inSet("works");
 const R_SIDE = R.obj({actor: R.inSet("actors"), tags: R.arr(8, R.inSet("tags"))}, ["actor"]);
@@ -2300,7 +2300,7 @@ const EVENTS = {
     stage: R.oneOf(["expected", "experienced"]),  // expected 추천 직후 / experienced 관람 후
     taste: R.obj({axes: R.dict(R.inSet("axisKeys"), R.int(-2, 2), 5), favs: R.arr(3, R.inSet("actors")), tags: R.arr(12, R.inSet("tags")), prio: R.oneOf(["노래", "연기", "몸", "고루"])}),  // 그때 취향: 5축 값, 좋아하는 배우, 고른 태그
     work: R_WORK, run: R_RUN, date: R.date, time: R.time, cast: R_CAST,
-    reasons: R.obj({actors: R.dict(R.inSet("actors"), R.arr(8, R.inSet("tags")), 8), combo: R.arr(6, R.inSet("comboTags"))}),  // 배우별로 맞춘 태그, 조합 태그
+    reasons: R.obj({actors: R.dict(R.inSet("actors"), R.arr(8, R.inSet("tags")), 12), combo: R.arr(6, R.inSet("comboTags"))}),  // 배우별로 맞춘 태그, 조합 태그
     algo: R.code, score: R.int(1, 5), chips: R_CHIPS}},
   combo_choice: {req: ["action", "work", "cast"], shape: {
     action: R.oneOf(["plan", "ticket"]), work: R_WORK, run: R_RUN, date: R.date, time: R.time, cast: R_CAST,
@@ -2913,7 +2913,7 @@ V.home = () => {
 };
 // 홈 아래 작품 목록(사용자 요청 2026-10-28: 홈이 비어 보이지 않게). ① 배우 조합을 추천받을 수 있는 작품(#find/작품) ② 지금 하는 공연 전체(KOPIS, 인기순·지역 칩, #show/…)
 const rankCard = (x, k) => { const ref = showRef(D, x.key); if (!ref) return ""; const pk = x.kind === "seed" && x.sched;  // 피클이 배우 조합을 추천하는 공연: 포스터 양쪽 레드 커튼(2026-11-03, 「날짜별 캐스팅 있음」 표시 대신)  // 인기순 위 10개는 포스터에 순위 숫자
-  return `<a class="pcard" href="#show/${esc(x.key)}" data-go="#show/${esc(x.key)}" data-entry="browse"><div class="pimg${pk ? " pkcur" : ""}">${posterOf(ref, "pi")}${k < 10 && x.pop != null ? `<span class="prank">${k + 1}</span>` : ""}${pk ? `<span class="pkc l" aria-hidden="true"></span><span class="pkc r" aria-hidden="true"></span><span class="sr-only">피클 조합 추천</span>` : ""}</div><span class="pt">${esc(x.title)}</span><span class="pw">${periodOf(ref).split(" / ")[0]}</span></a>`; };
+  return `<a class="pcard" href="#show/${esc(x.key)}" data-go="#show/${esc(x.key)}" data-entry="browse"><div class="pimg${pk ? " pkcur" : ""}">${posterOf(ref, "pi")}${k < 10 && x.pop != null ? `<span class="prank">${k + 1}</span>` : ""}${pk ? `<span class="pkc l" aria-hidden="true"></span><span class="pkc r" aria-hidden="true"></span><span class="pkbadge">조합 추천</span>` : ""}</div><span class="pt">${esc(x.title)}</span><span class="pw">${periodOf(ref).split(" / ")[0]}</span></a>`; };
 // 지금 하는 공연 전체(사용자 요청 2026-10-29): 제목 검색, 처음엔 5줄만 보이고 '더보기'마다 5줄씩. 한 줄 칸 수는 화면 너비(폰 3 · 넓은 화면 5)
 let HOME_ROWS = 5, HOME_Q = "";
 const homeCols = () => window.matchMedia && window.matchMedia("(max-width:599px)").matches ? 3 : 5;
@@ -2938,7 +2938,7 @@ const homeWorks = from => {
 // 작품 고르기(#find) →찾는 방법 고르기(#find/작품) → 날짜 먼저(#find/작품/date = 기존 달력) · 배우 먼저(#find/작품/actor = 기존 '누구로 볼까요?')
 // 두 경로의 세부 로직(기간 지정·순위·추천 2개 등)은 다음 단계. 지금은 기존 화면으로 이어 준다
 const leftPerfs = (w, from) => D.perfs.filter(x => x.work === w.name && !closed(x) && x.date >= from).length;
-const MVP_WORKS = (from = today()) => (D.works || []).filter(w => !ended(w, from)).sort((a, b) => (leftPerfs(a, from) || Infinity) - (leftPerfs(b, from) || Infinity) || a.name.localeCompare(b.name, "ko"));  // 남은 회차가 적은 순(결정 32), 회차 미공개(0회)는 맨 뒤, 공연이 끝난 작품은 뺀다(결정 35)
+const MVP_WORKS = (from = today()) => (D.works || []).filter(w => !ended(w, from)).sort((a, b) => !!a.added - !!b.added || (leftPerfs(a, from) || Infinity) - (leftPerfs(b, from) || Infinity) || a.name.localeCompare(b.name, "ko"));  // 처음 5작품 다음에 늘린 작품(2026-11-13 '아래로 넣어'), 그 안에서 남은 회차가 적은 순(결정 32), 회차 미공개(0회)는 맨 뒤, 공연이 끝난 작품은 뺀다(결정 35)
 const workState = (w, from) => {
   if (ended(w, from)) return {ok: false, text: "공연 종료"};
   if (!D.perfs.some(x => x.work === w.name && !closed(x) && x.date >= from)) return {ok: false, text: "회차 미공개"};
@@ -3111,7 +3111,7 @@ const moodChips = (ref, n = 3) => {
 // ① 히어로: 큰 포스터와, 그 포스터를 흐리게 깐 배경 위에 제목(크게) / 정보 한 줄 / 추천 이유 한 줄 / 분위기 칩 / [정보 더 보기]
 const summaryCard = (ref, rec) => {
   const si = ref.kind === "seed" ? (D.seedInfo || {})[ref.key] || {} : ref.s, runs = ref.kind === "seed" ? runsOf(ref.key) : [];
-  const url = ref.kind === "seed" ? ref.w.poster : ref.s.poster, nr = ref.kind === "current" ? ` referrerpolicy="no-referrer"` : "";
+  const url = ref.kind === "seed" ? ref.w.poster : ref.s.poster, nr = ref.kind === "current" || /^https?:/.test(url || "") ? ` referrerpolicy="no-referrer"` : "";
   const bg = url ? `<img class="hero-bg" src="${esc(url)}" alt="" aria-hidden="true"${nr}>` : "";
   const poster = ref.kind === "seed" ? posterEl(ref.w, "hp") : curPoster(ref.s, "hp");
   const title = ref.kind === "seed" ? ref.key : ref.s.title;
@@ -3259,7 +3259,7 @@ const plainDates = ref => { const si = ref.kind === "seed" ? (D.seedInfo || {})[
 // 출연진은 배역을 아는 공연(MVP 작품 + 배역표·회차표가 있는 KOPIS 공연)은 박스 바로 아래에 배역마다 한 줄, 배역을 모르는 KOPIS 공연만 박스 안에 이름만. 예매처는 박스 밖 아래. 배우 태그·평가 칸 없음
 const infoHero = ref => {
   const seed = ref.kind === "seed", si = seed ? (D.seedInfo || {})[ref.key] || {} : ref.s, runs = seed ? runsOf(ref.key) : [];
-  const url = seed ? ref.w.poster : ref.s.poster, nr = seed ? "" : ` referrerpolicy="no-referrer"`;
+  const url = seed ? ref.w.poster : ref.s.poster, nr = seed && !/^https?:/.test(url || "") ? "" : ` referrerpolicy="no-referrer"`;
   const bg = url ? `<img class="hero-bg" src="${esc(url)}" alt="" aria-hidden="true"${nr}>` : "";
   const poster = seed ? posterEl(ref.w, "hp") : curPoster(ref.s, "hp"), title = seed ? ref.key : ref.s.title, lab = r => runs.length > 1 || /STAGE/i.test(r.label) ? `<b>${esc(r.label)}</b> ` : "";
   const later = "예매처에서 확인";
