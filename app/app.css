@@ -286,6 +286,8 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .howlist .btn.howbtn{grid-column:1/-1;display:grid;grid-template-columns:subgrid;column-gap:.75em;align-items:center;justify-content:normal;min-height:56px;padding:12px;white-space:nowrap;font-size:min(15px,calc((100cqw - 24px)/21))}
 .howbtn small{grid-column:2;text-align:right;font-size:.86em;font-weight:500;opacity:.9}
 .howbtn b{grid-column:3;text-align:left;font-weight:800}
+/* 모바일: 두 버튼 모두 글자를 버튼 가운데로(사용자 요청 2026-11-13) */
+@media (max-width:599px){.howlist .btn.howbtn{display:flex;justify-content:center;gap:.5em}.howbtn small,.howbtn b{text-align:center}}
 /* 날짜 먼저 기간·하루씩 탭(사용자 요청 2026-11-03): 흰 바탕에 큰 글씨, 고른 탭은 짙은 바탕에 흰 글씨 */
 .seg.dfseg{background:var(--paper);padding:4px;gap:4px;border-radius:12px}
 .seg.dfseg button{min-height:46px;font-size:16px;font-weight:700;color:var(--on-paper);border-color:transparent}
@@ -738,5 +740,3 @@ button,.btn,.chip,.nb{text-align:center}
 .mood{justify-items:center}
 
 /* 조합 추천 작품 배지(사용자 요청 2026-11-13): '지금 하는 공연 전체'에서 피클이 조합을 추천하는 공연 포스터 위에 글자 배지(실링 도장은 왼쪽 위, 배지는 오른쪽 위) */
-.pimg .pkbadge{position:absolute;top:6px;right:6px;z-index:3;padding:3px 7px;border-radius:999px;background:#A51C30;color:#fff;font-size:10.5px;font-weight:800;line-height:1.2;white-space:nowrap;letter-spacing:-.02em;pointer-events:none}
-@media (min-width:600px){.pimg .pkbadge{font-size:11.5px;padding:4px 8px}}

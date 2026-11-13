@@ -463,6 +463,8 @@ button.tcard:focus-visible,.tk .btn:focus-visible,.tkedit:focus-visible{outline:
 .tkcap{margin:0;border-color:var(--tk-line);font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--tk-burg2);background:rgba(122,30,44,.18)}
 .tkbig{margin:-1px 0 0;padding:22px 14px;font-size:24px;font-weight:800;line-height:1.3;letter-spacing:-0.02em;text-wrap:balance;color:var(--tk-ink)}
 .tctitle{margin:0;font-size:24px;font-weight:800;line-height:1.3;text-wrap:balance}
+.tctitle.tcsent{font-size:19px;line-height:1.45;word-break:keep-all}
+@media (max-width:599px){.tctitle.tcsent{font-size:17px}}
 .tkgrid{display:grid;grid-template-columns:1fr 1fr;margin:-1px 0 0 1px}
 .tkgrid .wide{grid-column:1/-1}
 .tkv{font-size:14px;font-weight:600;line-height:1.4;color:var(--tk-ink)}
@@ -529,8 +531,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261113b">
-<link rel="stylesheet" href="app.css?v=20261113b">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261113c">
+<link rel="stylesheet" href="app.css?v=20261113c">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -565,7 +567,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611132117"></script>
+<script src="data.js?v=202611132138"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2827,7 +2829,9 @@ let H2C = null, CARD_IMG = {key: "", blob: null, job: null};
 const loadH2C = () => H2C ||= new Promise((ok, no) => { if (window.html2canvas) return ok(window.html2canvas);
   const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
   s.onload = () => ok(window.html2canvas); s.onerror = () => { H2C = null; no(new Error("html2canvas")); }; document.head.appendChild(s); });
-const cardKey = () => JSON.stringify([S.prefs, tasteTitle(S.prefs || {})]);
+// 카드 대표 문장 = 내 취향 탭과 같은, 고른 취향을 모두 모은 한 문장(사용자 요청 2026-11-13: 홈 카드에 '나만의 관극 취향을 담은 카드'만 보이던 것)
+const cardLine = p => tasteSentence(p) || tasteTitle(p);
+const cardKey = () => JSON.stringify([S.prefs, cardLine(S.prefs || {})]);
 const cardBlob = () => { const key = cardKey(); if (CARD_IMG.key === key && (CARD_IMG.blob || CARD_IMG.job)) return CARD_IMG.blob ? Promise.resolve(CARD_IMG.blob) : CARD_IMG.job;
   const el = document.querySelector(".tk.front"); if (!el) return Promise.resolve(null);
   CARD_IMG = {key, blob: null, job: loadH2C().then(h2c => h2c(el, {backgroundColor: null, scale: 2, useCORS: true, logging: false, ignoreElements: n => !!n.hasAttribute && n.hasAttribute("data-noshot")}))
@@ -2839,7 +2843,7 @@ const prepCardImg = () => { try { if (typeof document.querySelector !== "functio
 const CARD_FILE = "PICKLE_내취향카드.png";
 const saveCardImg = () => cardBlob().then(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = CARD_FILE; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); })  // 저장 알림(흰 토스트)은 띄우지 않는다(사용자 요청 2026-11-09)
   .catch(() => toast("이미지를 만들지 못했어요. 잠시 뒤 다시 눌러 주세요"));
-const shareInfo = () => ({url: location.origin + location.pathname, text: `나의 뮤지컬 관극 취향: ${tasteTitle(S.prefs || {})} #PICKLE`, title: "PICKLE 내 취향 카드"});
+const shareInfo = () => ({url: location.origin + location.pathname, text: `나의 뮤지컬 관극 취향: ${cardLine(S.prefs || {})} #PICKLE`, title: "PICKLE 내 취향 카드"});
 const shareCopy = () => { const {text, url} = shareInfo(); return (navigator.clipboard?.writeText ? navigator.clipboard.writeText(`${text}\n${url}`) : Promise.reject()).then(() => toast("공유 문구와 링크를 복사했어요. SNS에 붙여 넣어 주세요"), () => toast("이 브라우저에서는 공유를 쓸 수 없어요. 저장하기로 이미지를 받아 올려 주세요")); };
 const shareGo = data => navigator.share(data).catch(e => { if (e?.name !== "AbortError") shareCopy(); });
 const shareText = () => { const {title, text, url} = shareInfo(); return navigator.share ? shareGo({title, text, url}) : shareCopy(); };  // 문구·링크만(안드로이드 2단계 팝업에서도 씀)
@@ -2902,7 +2906,7 @@ V.home = () => {
         <div class="tkperf" aria-hidden="true"></div><div class="tkbtns"><button type="button" class="tkflip" data-act="cardFlip">앞면으로</button></div>${foot}</section>`
     : `<div class="tk front">${TK_CURTAIN}<button type="button" class="tcard" data-act="cardFlip" aria-label="내 취향 카드. 눌러서 뒤집기">${TK_HEAD}
         <span class="tkcell tkcap">나의 뮤지컬 관극 취향</span>
-        <span class="tkcell tkbig tctitle">${esc(tasteTitle(p))}</span>
+        <span class="tkcell tkbig tctitle tcsent">${esc(cardLine(p))}</span>
         <span class="tkgrid">${cells.length ? cells.map(([k, xs, wide, act]) => `<span class="tkcell${wide ? " wide" : ""}"><span class="tkk">${esc(k)}</span><span class="tkv">${xs.map(x => act ? `<span class="nm">${esc(x)}</span>` : esc(x)).join(" · ")}</span></span>`).join("") : `<span class="tkcell wide"><span class="tkv">아직 고른 태그가 없어요</span></span>`}</span>
         <span class="tchint" data-noshot>카드를 눌러 배우 조합을 추천받아요 ↻</span></button>
         <div class="tkperf" aria-hidden="true"></div>
@@ -2913,7 +2917,7 @@ V.home = () => {
 };
 // 홈 아래 작품 목록(사용자 요청 2026-10-28: 홈이 비어 보이지 않게). ① 배우 조합을 추천받을 수 있는 작품(#find/작품) ② 지금 하는 공연 전체(KOPIS, 인기순·지역 칩, #show/…)
 const rankCard = (x, k) => { const ref = showRef(D, x.key); if (!ref) return ""; const pk = x.kind === "seed" && x.sched;  // 피클이 배우 조합을 추천하는 공연: 포스터 양쪽 레드 커튼(2026-11-03, 「날짜별 캐스팅 있음」 표시 대신)  // 인기순 위 10개는 포스터에 순위 숫자
-  return `<a class="pcard" href="#show/${esc(x.key)}" data-go="#show/${esc(x.key)}" data-entry="browse"><div class="pimg${pk ? " pkcur" : ""}">${posterOf(ref, "pi")}${k < 10 && x.pop != null ? `<span class="prank">${k + 1}</span>` : ""}${pk ? `<span class="pkc l" aria-hidden="true"></span><span class="pkc r" aria-hidden="true"></span><span class="pkbadge">조합 추천</span>` : ""}</div><span class="pt">${esc(x.title)}</span><span class="pw">${periodOf(ref).split(" / ")[0]}</span></a>`; };
+  return `<a class="pcard" href="#show/${esc(x.key)}" data-go="#show/${esc(x.key)}" data-entry="browse"><div class="pimg${pk ? " pkcur" : ""}">${posterOf(ref, "pi")}${k < 10 && x.pop != null ? `<span class="prank">${k + 1}</span>` : ""}${pk ? `<span class="pkc l" aria-hidden="true"></span><span class="pkc r" aria-hidden="true"></span><span class="sr-only">피클 조합 추천</span>` : ""}</div><span class="pt">${esc(x.title)}</span><span class="pw">${periodOf(ref).split(" / ")[0]}</span></a>`; };
 // 지금 하는 공연 전체(사용자 요청 2026-10-29): 제목 검색, 처음엔 5줄만 보이고 '더보기'마다 5줄씩. 한 줄 칸 수는 화면 너비(폰 3 · 넓은 화면 5)
 let HOME_ROWS = 5, HOME_Q = "";
 const homeCols = () => window.matchMedia && window.matchMedia("(max-width:599px)").matches ? 3 : 5;
@@ -2938,7 +2942,10 @@ const homeWorks = from => {
 // 작품 고르기(#find) →찾는 방법 고르기(#find/작품) → 날짜 먼저(#find/작품/date = 기존 달력) · 배우 먼저(#find/작품/actor = 기존 '누구로 볼까요?')
 // 두 경로의 세부 로직(기간 지정·순위·추천 2개 등)은 다음 단계. 지금은 기존 화면으로 이어 준다
 const leftPerfs = (w, from) => D.perfs.filter(x => x.work === w.name && !closed(x) && x.date >= from).length;
-const MVP_WORKS = (from = today()) => (D.works || []).filter(w => !ended(w, from)).sort((a, b) => !!a.added - !!b.added || (leftPerfs(a, from) || Infinity) - (leftPerfs(b, from) || Infinity) || a.name.localeCompare(b.name, "ko"));  // 처음 5작품 다음에 늘린 작품(2026-11-13 '아래로 넣어'), 그 안에서 남은 회차가 적은 순(결정 32), 회차 미공개(0회)는 맨 뒤, 공연이 끝난 작품은 뺀다(결정 35)
+// 순서: '지금 하는 공연 전체'와 같은 인기순(사용자 요청 2026-11-13). 목록에 없는 작품(아직 안 열린 공연 등)은 뒤에, 그 안에서 남은 회차가 적은 순(결정 32), 공연이 끝난 작품은 뺀다(결정 35)
+const popRank = from => new Map(byPopularity(allShows(D, from), from).map((x, i) => [x.key, i]));
+const MVP_WORKS = (from = today()) => { const rk = popRank(from), r = w => rk.has(w.name) ? rk.get(w.name) : 1e9;
+  return (D.works || []).filter(w => !ended(w, from)).sort((a, b) => r(a) - r(b) || (leftPerfs(a, from) || 1e9) - (leftPerfs(b, from) || 1e9) || a.name.localeCompare(b.name, "ko")); };  // 처음 5작품 다음에 늘린 작품(2026-11-13 '아래로 넣어'), 그 안에서 남은 회차가 적은 순(결정 32), 회차 미공개(0회)는 맨 뒤, 공연이 끝난 작품은 뺀다(결정 35)
 const workState = (w, from) => {
   if (ended(w, from)) return {ok: false, text: "공연 종료"};
   if (!D.perfs.some(x => x.work === w.name && !closed(x) && x.date >= from)) return {ok: false, text: "회차 미공개"};
