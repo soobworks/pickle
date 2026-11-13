@@ -550,6 +550,7 @@ a.wcard:hover{border-color:var(--hl)}
     </nav>
     <span aria-hidden="true"></span>  <!-- 머리줄 오른쪽 빈칸(가운데 맞춤용). 명암 버튼은 판을 하나로 통일하며 뺐다(2026-10-29) -->
   </header>
+  <div class="kakaobar" id="kakaobar" role="note" hidden></div>  <!-- 카카오톡 안에서 열었을 때만: 외부 브라우저로 열기 안내(2026-11-13) -->
   <main id="view"></main>
   <div class="cta" id="cta" hidden></div>
   <nav class="tabs" id="tabs">
@@ -564,7 +565,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611131509"></script>
+<script src="data.js?v=202611131557"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -677,7 +678,7 @@ function recommend(work, lo, hi, prefs, actors = [], top = 2, avoid = []) {
   const want = wantSet(prefs), pins = pinsByRole(work, actors);
   const groups = new Map();
   for (const p of D.perfs) {
-    if (p.work !== work || isPrivate(p) || p.date < lo || p.date > hi || !passes(p, pins, avoid)) continue;
+    if (p.work !== work || closed(p) || p.date < lo || p.date > hi || !passes(p, pins, avoid)) continue;
     const key = Object.entries(p.cast).sort().map(e => e.join(":")).join("|");
     if (!groups.has(key)) groups.set(key, {cast: p.cast, shows: []});
     groups.get(key).shows.push(p);
@@ -740,7 +741,7 @@ const KR_HOLIDAYS = new Set(["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-
 const redDay = d => { const w = new Date(d + "T00:00:00").getDay(); return w === 0 || w === 6 || KR_HOLIDAYS.has(d); };  // 토·일·공휴일
 const posterEl = (w, cls = "poster") => w.poster ? `<img class="${cls}" src="${esc(w.poster)}" alt="${esc(w.name)} 포스터">` : `<div class="${cls} type" style="--accent:${esc(w.accent)}">${esc(w.name)}</div>`;
 function whenTile(p) {
-  const badges = p.notes.filter(n => /첫공|막공|폐막|프리뷰|마티네|스윙/.test(n)).map(n => `<span class="badge">${esc(n.length > 14 ? n.slice(0, 12) + "…" : n)}</span>`).join("");
+  const badges = p.notes.filter(n => /첫공|막공|폐막|프리뷰|마티네|스윙/.test(n)).map(n => `<span class="badge">${esc(n.length > 14 ? n.slice(0, 12) + "…" : n)}</span>`).join("") + groupBadge(p);
   return `<div class="when"><div class="d">${md(p.date)}</div><div class="w">${esc(p.dow)}요일</div><div class="t">${esc(p.time)}</div>${badges}</div>`;
 }
 // 태그 근거 문장(why)·출처 이름·링크는 사용자 화면 어디에도 내지 않는다(2026-10-13 사용자 지시). data.js 에도 없다 — 서로 다른 출처를 세는 키(sk)만 있다
@@ -1001,6 +1002,12 @@ const cardHit = (c, tags) => c.tags.filter(t => tags.has(t)).length >= (c.tags.l
 const workTagSet = (D, work) => new Set(((D.workTags || {})[work] || []).map(r => r.tag));
 // 전체대관 회차(비고에 '대관'): 단체가 통째로 빌려 일반 예매가 안 된다. 날짜·조합 추천, 달력, 목록, 후보 계산에서 뺀다(상세 화면은 직접 열면 안내 줄만)
 const isPrivate = p => (p.notes || []).some(n => /대관/.test(n));
+// 지난 회차(사용자 결정 2026-11-13): 오늘 공연 중 시작 시각이 지난 회차는 추천·달력·목록에서 뺀다(날짜만 보던 것을 시각까지). 단체 대관 회차도 함께 닫힌 회차로 본다
+const startedNow = p => { const d = new Date(), z = n => String(n).padStart(2, "0"); return p.date === `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}` && p.time <= `${z(d.getHours())}:${z(d.getMinutes())}`; };
+const closed = p => isPrivate(p) || startedNow(p);
+// 단관(사용자 결정 2026-11-13): 공식 캐스팅표에 '전관'·'단관'으로 표시된 회차(단체 관람)는 추천에 그대로 두고 날짜 옆에 '단관' 배지만 단다. '대관'(일반 예매 불가)은 지금처럼 뺀다
+const groupShow = p => !isPrivate(p) && (p.notes || []).some(n => /전관|단관|단체 ?관람/.test(n));
+const groupBadge = p => groupShow(p) ? '<span class="badge gshow">단관</span>' : "";
 // 작품 추천은 회차 캐스팅이 없어도 된다. 끝난 작품(모든 공연의 끝 < from)은 뺀다
 const ended = (w, from) => (w.runs || []).length > 0 && w.runs.every(r => r.end < from);
 // 지금 하는 작품의 주연 후보 Map(이름 → 이 작품에서 맡은 주연 배역들). 회차가 있는 작품은 남은 회차의 주연(예전 그대로, 남은 회차가 없으면 null),
@@ -1008,7 +1015,7 @@ const ended = (w, from) => (w.runs || []).length > 0 && w.runs.every(r => r.end 
 const runningLeads = (D, w, from) => {
   const lead = unitRoles(D, w.name), map = new Map(), add = (x, role) => map.set(x, [...new Set([...(map.get(x) || []), role])]);
   if (w.hasSchedule) {
-    const ls = new Set(lead.map(r => r.role)), ups = D.perfs.filter(p => p.work === w.name && p.date >= from && !isPrivate(p)); if (!ups.length) return null;
+    const ls = new Set(lead.map(r => r.role)), ups = D.perfs.filter(p => p.work === w.name && p.date >= from && !closed(p)); if (!ups.length) return null;
     for (const p of ups) for (const [role, x] of Object.entries(p.cast)) if (ls.has(role)) add(x, role);
   } else if (ended(w, from)) return null;
   else for (const r of lead) for (const x of r.cast) add(x, r.role);
@@ -1077,9 +1084,9 @@ const similarTo = (fav, c) => {
 };
 // 아직 PICKLE 데이터에 없는 이름(프로필도, 어느 작품 캐스트에도 없음)
 const knownActor = (D, a) => !!(D.actorProfiles || {})[a] || Object.values(D.roles || {}).some(rs => rs.some(r => r.cast.includes(a)));
-// 지금 하는 다른 공연(KOPIS, 시드 밖). recommend.py 가 만 18세 이상·출연진 없음·끝난 공연·시드를 이미 뺐지만, 내보낸 뒤 날짜가 지나므로 끝난 공연은 여기서 한 번 더 거른다(같은 규칙)
+// 지금 하는 다른 공연(KOPIS, 시드 밖). 만 18세 이상 공연도 넣는다(사용자 결정 2026-11-13). recommend.py 가 출연진 없음·끝난 공연·시드를 이미 뺐지만, 내보낸 뒤 날짜가 지나므로 끝난 공연은 여기서 한 번 더 거른다(같은 규칙)
 const minAge = a => +((String(a || "").match(/만\s*(\d+)\s*세/) || [])[1] || 0);
-const liveShows = (D, from) => (D.currentShows || []).filter(s => s.end >= from && (s.cast || []).length && minAge(s.age) < 18 && !(D.works || []).some(w => String(s.title).replace(/\s+/g, "").includes(w.name.replace(/\s+/g, ""))));
+const liveShows = (D, from) => (D.currentShows || []).filter(s => s.end >= from && (s.cast || []).length && !(D.works || []).some(w => String(s.title).replace(/\s+/g, "").includes(w.name.replace(/\s+/g, ""))));
 // 좋아하는 배우 a 와 닮은 배우가 나오는 작품. 지금 하는(끝나지 않은) 작품의 주연(runningLeads)이 후보고, a 본인은 후보가 아니다. 닮은 특성이 같은 후보끼리 한 줄로 묶는다.
 // 점수·순위 없음: 작품은 a 가 나오는 작품 먼저 → 겹치는 서로 다른 특성의 근거 가중치 합(근거 1개 1, 2개 이상 1.5) → 이름. 특성이 없으면 [] (좋아하는 점을 물어봐야 한다)
 const similarWorks = (D, a, extra, from) => {
@@ -1097,7 +1104,7 @@ const similarWorks = (D, a, extra, from) => {
   };
   for (const w of D.works) {
     const roleOf = runningLeads(D, w, from); if (!roleOf) continue;  // 끝난 작품·남은 회차 없는 작품은 뺀다. roleOf: 후보 → 이 작품에서 맡은 주연 배역
-    add(w, [...roleOf.keys()], w.hasSchedule ? D.perfs.some(p => p.work === w.name && p.date >= from && !isPrivate(p) && Object.values(p.cast).includes(a)) : (D.roles[w.name] || []).some(r => r.cast.includes(a)),
+    add(w, [...roleOf.keys()], w.hasSchedule ? D.perfs.some(p => p.work === w.name && p.date >= from && !closed(p) && Object.values(p.cast).includes(a)) : (D.roles[w.name] || []).some(r => r.cast.includes(a)),
       c => traitsOf(D, c, [], {work: w.name, roles: roleOf.get(c)}));
   }
   // 지금 하는 다른 공연(KOPIS): 후보는 대표 출연진, 배역 정보가 없어서 목소리 특성만 견준다(here 의 roles 가 비어 연기·해석 태그는 안 쓴다)
@@ -1218,8 +1225,7 @@ V.saved = i => {
       ${run.venue ? `<p class="small muted">${esc(run.venue)}</p>` : ""}
       <div class="chips">${castChips(x.work, x.cast)}</div></div>
     <div class="svact">
-      ${run.ticket ? `<a class="btn${booked ? " ghost" : ""}" data-act="ticketSaved" data-i="${+i}" href="${esc(run.ticket)}" target="_blank" rel="noopener">예매처로 이동 ↗</a>
-      <p class="tiny muted">예매처에서 <b>${md(x.date)} ${esc(x.time)}</b> 날짜를 다시 골라 주세요(날짜는 자동으로 안 넘어가요).</p>` : `<button class="btn" disabled>예매 링크 준비 중</button>`}
+      ${run.ticket ? `<a class="btn${booked ? " ghost" : ""}" data-act="ticketSaved" data-i="${+i}" href="${esc(run.ticket)}" target="_blank" rel="noopener">예매처로 이동 ↗</a>` : `<button class="btn" disabled>예매 링크 준비 중</button>`}
       ${booked ? "" : `<button class="btn ghost" data-act="planStatus" data-i="${+i}" data-s="booked">예매했어요로 바꾸기</button>`}
       <a class="btn ghost" href="#plans" data-act="toCal" data-m="${x.date.slice(0, 7)}">캘린더에서 보기</a>
       <button class="btn ghost" data-go="#home">홈으로</button>
@@ -1582,9 +1588,9 @@ const showRef = (D, key) => {  // 극 요약 주소의 키: 시드 작품은 작
 const isRunning = (D, w, from) => w.hasSchedule ? !!runningLeads(D, w, from) : !ended(w, from);
 // 구분(대학로 / 대학로 외, 화면에는 안 쓴다): export 가 붙인 area 값('확인 필요'는 대학로 외로 보내고 따로 안 드러낸다). 값이 없는 옛 data.js 면 임시 규칙(공연명·공연장에 '대학로')
 const areaOf = x => { if (x.area) return x.area === "대학로" ? "대학로" : "대학로 외"; const venue = x.venue || (x.runs || []).map(r => r.venue).join(" "); return /대학로/.test(`${x.title || x.name || ""} ${venue}`) ? "대학로" : "대학로 외"; };
-// 지금 하는 공연 전체 = 끝나지 않은 시드 작품 + 지금 하는 KOPIS 공연(18세 이상·끝난 공연은 liveShows 규칙대로 뺀다). sched: 회차 캐스팅이 있는 작품
-// 출연진 정보가 없는 KOPIS 공연(noCast): 같은 규칙(끝나지 않음·18세 미만·시드와 같은 공연 아님)으로 전체 목록에만 나온다. 추천 줄·비슷한 배우 계산은 liveShows(출연진 있는 것)만 쓴다
-const noCastShows = (D, from) => (D.currentShows || []).filter(s => s.noCast && s.end >= from && minAge(s.age) < 18 && !(D.works || []).some(w => String(s.title).replace(/\s+/g, "").includes(w.name.replace(/\s+/g, ""))));
+// 지금 하는 공연 전체 = 끝나지 않은 시드 작품 + 지금 하는 KOPIS 공연(끝난 공연은 liveShows 규칙대로 뺀다. 18세 이상도 넣는다, 2026-11-13). sched: 회차 캐스팅이 있는 작품
+// 출연진 정보가 없는 KOPIS 공연(noCast): 같은 규칙(끝나지 않음·시드와 같은 공연 아님)으로 전체 목록에만 나온다. 추천 줄·비슷한 배우 계산은 liveShows(출연진 있는 것)만 쓴다
+const noCastShows = (D, from) => (D.currentShows || []).filter(s => s.noCast && s.end >= from && !(D.works || []).some(w => String(s.title).replace(/\s+/g, "").includes(w.name.replace(/\s+/g, ""))));
 // 각 공연: region(지역 칩, export 가 공연장 주소로 붙임), pop(예매상황판 순위, 없으면 null — 정렬에만 쓰고 화면엔 안 보인다), start(시작일 — 시드 작품은 지금 하는 회차의 시작)
 const seedStart = (w, from) => { const rs = w.runs || [], live = rs.filter(r => r.end >= from); return (live.length ? live : rs).map(r => r.start).sort()[0] || ""; };
 const allShows = (D, from) => [...D.works.filter(w => isRunning(D, w, from)).map(w => ({key: w.name, kind: "seed", title: w.name, area: areaOf(w), region: w.region || "", pop: w.popularity ?? null, start: seedStart(w, from), sched: !!w.hasSchedule})),
@@ -1606,7 +1612,7 @@ const showsIn = (all, tabs, tab, from) => byPopularity(tab === "all" ? all : all
 const showNext = (D, ref, from) => ref.kind === "seed" && ref.w.hasSchedule && isRunning(D, ref.w, from) ? {type: "calendar", hash: "#cal/" + ref.key} : {type: "inline"};
 const dayHash = (work, date) => `#day/${work}/${date}`;
 // 달력: 앞으로 남은 회차가 있는 날 → 그날의 회차들(전체대관 제외)
-const calDays = (D, work, from) => { const out = {}; for (const p of D.perfs) if (p.work === work && p.date >= from && !isPrivate(p)) (out[p.date] ||= []).push(p); for (const d in out) out[d].sort((a, b) => a.time.localeCompare(b.time)); return out; };
+const calDays = (D, work, from) => { const out = {}; for (const p of D.perfs) if (p.work === work && p.date >= from && !closed(p)) (out[p.date] ||= []).push(p); for (const d in out) out[d].sort((a, b) => a.time.localeCompare(b.time)); return out; };
 const likeTagsFor = (S, a) => { const l = (S.likes || []).find(x => x.actor === a); return l ? [...(l.tags || []), ...(l.roles || []).flatMap(r => r.tags || [])] : []; };
 
 // 고른 취향 카드와 맞는 KOPIS 공연: 작품 테마 태그(D.workTags[공연 제목], 소개 글에서 단 것)가 있는 공연만. 맞는 카드가 많은 순(같으면 제목순). 테마는 소개 글에서 온 것이라 출연진이 없는 공연도 된다
@@ -1772,7 +1778,7 @@ const comboRecs = (D, S, work, from, inDates = null) => {  // inDates: 날짜 �
   const roleIdx = Object.fromEntries(unitRoles(D, work).map((r, i) => [r.role, i]));  // 화면 위쪽 배역일수록 주연(사용자 요청 2026-11-04: 배우 순위 대신 배역 순서)
   const groups = new Map();
   for (const p of D.perfs) {
-    if (p.work !== work || p.date < from || isPrivate(p) || (inDates && !inDates.includes(p.date)) || Object.values(p.cast).some(a => never.includes(a))) continue;
+    if (p.work !== work || p.date < from || closed(p) || (inDates && !inDates.includes(p.date)) || Object.values(p.cast).some(a => never.includes(a))) continue;
     const k = comboKey(D, work, p.cast), g = groups.get(k) || {key: k, cast: Object.fromEntries(leadsOf(D, work, p.cast)), perfs: []};
     g.perfs.push(p); groups.set(k, g);
   }
@@ -1816,7 +1822,7 @@ const topRec = (D, S, work, from) => comboRecs(D, S, work, from)[0] || null;
 // 미리 선택: 추천 1순위 조합, 추천이 없으면 가장 빠른 회차의 주연 조합(PICK 표시는 추천이 있을 때만)
 const defaultSel = (D, S, work, from) => {
   const top = topRec(D, S, work, from); if (top) return {...top.cast};
-  const p = D.perfs.filter(x => x.work === work && x.date >= from && !isPrivate(x)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+  const p = D.perfs.filter(x => x.work === work && x.date >= from && !closed(x)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
   return p ? Object.fromEntries(leadsOf(D, work, p.cast)) : {};
 };
 // 지금 선택: 사용자가 누른 배우가 있으면 그걸(아직 나오는 배우만), 나머지 배역은 미리 선택을 따른다
@@ -1825,7 +1831,7 @@ const curSel = (D, S, work, from) => {
   for (const r of leadRolesOf(D, work)) { const c = duelCands(D, work, r.role, from), a = mine[r.role] && c.includes(mine[r.role]) ? mine[r.role] : d[r.role] || c[0]; if (a) out[r.role] = a; }
   return out;
 };
-const selPerfs = (D, work, sel, from) => D.perfs.filter(p => p.work === work && p.date >= from && !isPrivate(p) && Object.entries(sel).every(([r, a]) => p.cast[r] === a)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+const selPerfs = (D, work, sel, from) => D.perfs.filter(p => p.work === work && p.date >= from && !closed(p) && Object.entries(sel).every(([r, a]) => p.cast[r] === a)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 const selDates = (D, work, sel, from) => [...new Set(selPerfs(D, work, sel, from).map(p => p.date))];
 // 배우를 누르면 그 배역만 바뀐다(나머지 배역은 지금 선택 그대로 굳힌다). 달력은 첫 달·고른 날 없음으로 돌아간다. 바뀌기 전 배우를 돌려준다(비교 제안용)
 const setSel = (D, S, work, role, actor, from) => {
@@ -1943,7 +1949,7 @@ const applyActorRating = (S, show, actor, rating) => {
 
 // ---- 배역별 이상형 월드컵(극 요약 아래, 선택): 같은 배역의 두 배우를 보여 주고 왼쪽/비슷해요/오른쪽. 한 라운드 = 주연 배역마다 1판, 최대 DUEL_MAX(3)판(10초). 끝에 '더 해 볼래요'로 다음 라운드. 고른 결과는 그 작품의 추천 조합에 바로 반영된다(comboRecs 의 duelBonus)
 const DUEL_MAX = 3;
-const duelCands = (D, work, role, from) => { const has = new Set(D.perfs.filter(p => p.work === work && p.date >= from && !isPrivate(p)).map(p => p.cast[role]).filter(Boolean)); return ((D.roles[work] || []).find(r => r.role === role)?.cast || []).filter(a => has.has(a)); };
+const duelCands = (D, work, role, from) => { const has = new Set(D.perfs.filter(p => p.work === work && p.date >= from && !closed(p)).map(p => p.cast[role]).filter(Boolean)); return ((D.roles[work] || []).find(r => r.role === role)?.cast || []).filter(a => has.has(a)); };
 const duelDone = (S, work) => duelsOf(S, work).length;
 const duelTags = (D, work, a, role) => [...new Set(roleRows(D, work, a, role).map(r => r.tag))].slice(0, 6);  // 화면에 보여 주는 태그 = 기록에 남는 태그
 const duelRound = (S, work) => S.proto?.duelRound?.[work] || 1;
@@ -2033,7 +2039,7 @@ const mustClash = (D, work, c, from) => {  // 반드시 포함끼리 같은 배�
   const must = c.pick.filter(x => x.must).map(x => x.a); if (must.length < 2) return null;
   const roleOf = a => unitRoles(D, work).find(r => r.cast.includes(a))?.role;
   for (let j = 1; j < must.length; j++) for (let i = 0; i < j; i++) if (roleOf(must[i]) && roleOf(must[i]) === roleOf(must[j])) return {kind: "role", a: must[i], b: must[j]};
-  const ok = (D.perfs || []).some(p => p.work === work && p.date >= from && !isPrivate(p) && must.every(a => Object.values(p.cast).includes(a)));
+  const ok = (D.perfs || []).some(p => p.work === work && p.date >= from && !closed(p) && must.every(a => Object.values(p.cast).includes(a)));
   return ok ? null : {kind: "perf", a: must[0], b: must[must.length - 1]};
 };
 
@@ -2073,7 +2079,7 @@ const noComboHints = (D, S, work, from, inDates = null) => {
   found.sort((x, y) => x.list.length - y.list.length || Math.max(...x.list.map(c => RELAX_ORDER[c.k])) - Math.max(...y.list.map(c => RELAX_ORDER[c.k])) || y.n - x.n || x.list[0].a.localeCompare(y.list[0].a, "ko"));
   const out = found.slice(0, 3).map(x => ({k: "actor", n: x.n, text: `${x.list.map(relaxFrag).join("고 ")}면 ${x.n}회${x.list.some(c => c.k === "avoid") ? " ('내 취향'에서 바꿀 수 있어요)" : ""}`}));
   if (inDates && inDates.length) {  // 날짜를 더하면: 현재 조건 그대로 볼 수 있는 가장 가까운 날
-    const allDays = [...new Set(D.perfs.filter(p => p.work === work && p.date >= from && !isPrivate(p)).map(p => p.date))], all = [...new Set(comboRecs(D, S, work, from, allDays).flatMap(r => r.dates))].filter(d => !inDates.includes(d)), lo = [...inDates].sort()[0], hi = [...inDates].sort().pop();
+    const allDays = [...new Set(D.perfs.filter(p => p.work === work && p.date >= from && !closed(p)).map(p => p.date))], all = [...new Set(comboRecs(D, S, work, from, allDays).flatMap(r => r.dates))].filter(d => !inDates.includes(d)), lo = [...inDates].sort()[0], hi = [...inDates].sort().pop();
     const gap = d => d < lo ? (Date.parse(lo) - Date.parse(d)) : d > hi ? (Date.parse(d) - Date.parse(hi)) : 0, near = all.sort((a, b) => gap(a) - gap(b) || a.localeCompare(b))[0];
     if (near) { const n = recCount(comboRecs(D, S, work, from, [...inDates, near])); if (n > 0) out.push({k: "date", n, date: near, text: `날짜에 ${near.slice(5, 7).replace(/^0/, "")}/${near.slice(8).replace(/^0/, "")}(${["일", "월", "화", "수", "목", "금", "토"][new Date(near + "T00:00:00").getDay()]})도 더하면 ${n}회`}); }
   }
@@ -2925,11 +2931,11 @@ const homeWorks = from => {
 };
 // 작품 고르기(#find) →찾는 방법 고르기(#find/작품) → 날짜 먼저(#find/작품/date = 기존 달력) · 배우 먼저(#find/작품/actor = 기존 '누구로 볼까요?')
 // 두 경로의 세부 로직(기간 지정·순위·추천 2개 등)은 다음 단계. 지금은 기존 화면으로 이어 준다
-const leftPerfs = (w, from) => D.perfs.filter(x => x.work === w.name && !isPrivate(x) && x.date >= from).length;
+const leftPerfs = (w, from) => D.perfs.filter(x => x.work === w.name && !closed(x) && x.date >= from).length;
 const MVP_WORKS = (from = today()) => (D.works || []).filter(w => !ended(w, from)).sort((a, b) => (leftPerfs(a, from) || Infinity) - (leftPerfs(b, from) || Infinity) || a.name.localeCompare(b.name, "ko"));  // 남은 회차가 적은 순(결정 32), 회차 미공개(0회)는 맨 뒤, 공연이 끝난 작품은 뺀다(결정 35)
 const workState = (w, from) => {
   if (ended(w, from)) return {ok: false, text: "공연 종료"};
-  if (!D.perfs.some(x => x.work === w.name && !isPrivate(x) && x.date >= from)) return {ok: false, text: "회차 미공개"};
+  if (!D.perfs.some(x => x.work === w.name && !closed(x) && x.date >= from)) return {ok: false, text: "회차 미공개"};
   return {ok: true, text: ""};  // 'MM.DD까지 회차 공개' 안내는 뺐다(사용자 요청 2026-11-03)
 };
 const notInWork = (w, names) => names.filter(a => !(D.roles[w.name] || []).some(r => r.cast.includes(a)));
@@ -2958,7 +2964,7 @@ const dfRangeTap = (st, work, d) => {
     st.spans = spans.filter(x => x !== s); return; }
   const [a, b] = [st.rs, d].sort(), near = spans.filter(([x, y]) => x <= b && a <= y);
   st.spans = [...spans.filter(x => !near.includes(x)), [[a, ...near.map(x => x[0])].sort()[0], [b, ...near.map(x => x[1])].sort().pop()]];
-  st.dates = [...new Set([...dates, ...D.perfs.filter(p => p.work === work && p.date >= a && p.date <= b && p.date >= today() && !isPrivate(p)).map(p => p.date)])].sort();
+  st.dates = [...new Set([...dates, ...D.perfs.filter(p => p.work === work && p.date >= a && p.date <= b && p.date >= today() && !closed(p)).map(p => p.date)])].sort();
   delete st.rs; };
 // 고른 날짜를 구간으로(사용자 요청 2026-11-03): 회차가 있는 날을 차례로 볼 때 이어서 고른 날은 한 구간. 회차 없는 날은 구간을 끊지 않는다
 const dateRuns = (all, dates) => { const runs = []; let cur = null; for (const d of all) { if (dates.includes(d)) { if (cur) cur[1] = d; else runs.push(cur = [d, d]); } else cur = null; } return runs; };
@@ -2967,7 +2973,7 @@ const mdDow = d => `${mdDot(d)}(${dowOf(d)})`;
 const runsText = runs => runs.map(([a, b]) => a === b ? mdDow(a) : `${mdDow(a)}~${mdDow(b)}`).join(", ");  // 구간이 몇 개든 날짜마다 요일(사용자 요청 2026-11-04): 11.24(화)~11.29(일), 11.30(월)
 const dateFirst = (w, step) => {
   const work = w.name, W = esc(work), from = today(), st = (S.cal[work] ||= {actors: [], period: "all"}), c = actorConds(D, S, work, "date"), never = [...c.avoid], byDate = {};
-  for (const p of D.perfs) if (p.work === work && p.date >= from && !isPrivate(p)) (byDate[p.date] ||= []).push(p);
+  for (const p of D.perfs) if (p.work === work && p.date >= from && !closed(p)) (byDate[p.date] ||= []).push(p);
   const all = Object.keys(byDate).sort(), dates = (st.dates || []).filter(d => byDate[d]), head = `<div><p class="eyebrow">${W} · 날짜 먼저</p><h1>언제 볼 수 있어요?</h1></div>${condLine(w)}`;
   if (step === "recs") return dateRecs(w, dates, byDate, all, c, never);
   if (step === "cal") return actorCal(w, showRef(D, work), `#find/${W}/date/recs`);
@@ -3010,7 +3016,7 @@ const actorFirst = (w, step) => {
   const work = w.name, W = esc(work), from = today(), c = actorConds(D, S, work), ref = showRef(D, work);
   if (step === "recs") return actorRecs(w, c);
   if (step === "cal") return actorCal(w, ref);
-  const clash = mustClash(D, work, c, from), left = a => D.perfs.some(p => p.work === work && p.date >= from && !isPrivate(p) && Object.values(p.cast).includes(a));
+  const clash = mustClash(D, work, c, from), left = a => D.perfs.some(p => p.work === work && p.date >= from && !closed(p) && Object.values(p.cast).includes(a));
   const state = a => { const x = c.pick.find(y => y.a === a); return x ? (x.must ? "must" : "maybe") : c.avoid.includes(a) || c.extra.includes(a) ? "avoid" : ""; };
   const roles = unitRoles(D, work).map(r => `<div class="rolebox"><div class="rolehead"><b>${esc(r.role)}</b></div><div class="acgrid">${r.cast.map(a => { const s = state(a), off = !left(a), on = s === "must" || s === "maybe";
     const label = `${esc(a)}${s === "must" ? ", 반드시 포함" : s === "maybe" ? ", 가능하면 포함" : ""}. 누를 때마다 가능하면 포함, 반드시 포함, 취소 순으로 바뀌어요`;
@@ -3157,12 +3163,12 @@ const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 �
   const whyLines = c => { const r = recBy.get(c.key); if (!r) return "";  // 왜 맞는지 사용자 친화 문장(reasonLines): 본진·애정 배우 → 취향에 맞는 배우의 특징 → 조합 평가, 근거가 없으면 배우 조건 문장
     const names = [...new Set(Object.values(c.cast))].filter(Boolean).sort((a, b) => b.length - a.length).map(a => esc(a).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), re = names.length ? new RegExp(names.join("|"), "g") : null;  // 근거 문장 속 배우 이름은 크고 굵게(사용자 요청 2026-11-09)
     return `<ul class="why">${reasonLines(D, S, work, r).map(l => `<li class="small">${re ? esc(l).replace(re, m => `<b class="rname">${m}</b>`) : esc(l)}</li>`).join("")}</ul>`; };  // 정보가 적은 배우를 따로 적지 않는다(사용자 요청 2026-11-03 저녁)
-  const perfsOfKey = key => D.perfs.filter(p => p.work === work && p.date >= from && !isPrivate(p) && (!inDates || inDates.includes(p.date)) && comboKey(D, work, p.cast) === key).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const perfsOfKey = key => D.perfs.filter(p => p.work === work && p.date >= from && !closed(p) && (!inDates || inDates.includes(p.date)) && comboKey(D, work, p.cast) === key).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   const nPerf = key => perfsOfKey(key).length;
   // 카드 왼쪽 위: 이 조합으로 볼 수 있는 가장 가까운 날짜·시간(크게), 그 밑에 다음 회차 3개와 개수(사용자 요청 2026-10-28: 고르기 전에도 날짜를 안다)
   const whenHead = key => { const ps = perfsOfKey(key); if (!ps.length) return "";
-    const [p0, ...rest] = ps, dt = p => `${md(p.date)}(${esc(p.dow)}) ${esc(p.time)}`;
-    return `<div class="rcwhen"><b class="rcd">${p0.date.slice(5, 7)}.${p0.date.slice(8)} <span>(${esc(p0.dow)})</span> ${esc(p0.time)}</b>
+    const [p0, ...rest] = ps, dt = p => `${md(p.date)}(${esc(p.dow)}) ${esc(p.time)}${groupShow(p) ? " 단관" : ""}`;
+    return `<div class="rcwhen"><b class="rcd">${p0.date.slice(5, 7)}.${p0.date.slice(8)} <span>(${esc(p0.dow)})</span> ${esc(p0.time)}</b>${groupBadge(p0)}
       ${rest.length ? `<span class="rcmore">${rest.slice(0, 3).map(dt).join(" · ")}${rest.length > 3 ? ` 외 ${rest.length - 3}회` : ""}</span>` : ""}</div>`; };
   const sameCast = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
   const card = (c, i) => { const e = sat[c.key], on = nav ? pk === c.key && sameCast(c.cast, sel) : sameCast(c.cast, sel), names = Object.values(c.cast), rec = recBy.get(c.key);  // 1·2순위 비교 문구(rankNote)는 화면에 안 보인다(사용자 요청 2026-11-03 저녁)  // 배우·날짜 먼저 화면은 처음엔 아무것도 안 골라져 있다(눌러야 on)
@@ -3642,6 +3648,8 @@ document.addEventListener("click", e => {
     case "clearDates": { const st = S.cal[d.work || work]; st.dates = []; if (S.query?.work === (d.work || work)) S.query.dates = []; save(); route(); break; }
     case "toSide": $("#view .side").scrollIntoView(); break;
     case "closeSheet": closeSheet(); break;
+    case "kakaoOpen": location.href = kakaoOut(); break;  // 카카오톡 → 외부 브라우저로 지금 화면 열기
+    case "kakaoHide": { try { sessionStorage.setItem("pickle_kakao_off", "1"); } catch (e) {} const el = document.querySelector("#kakaobar"); if (el) el.hidden = true; break; }
     case "runQuery": { const st = S.cal[d.work]; if (!st?.count) { toast("조건에 맞는 회차가 없어요"); return; } S.query = {work: d.work, lo: st.lo, hi: st.hi, actors: st.actors, dates: st.dates || []}; save(); location.hash = "#result"; break; }
     case "plan": { const p = D.perfs.find(x => x.work === d.work && x.date === d.date && x.time === d.time); if (!p) return; if (isPrivate(p)) { toast("단체 대관 공연이라 일반 예매가 안 돼요"); return; } finishPending("plan", p); break; }  // 바로 담는다(별점 시트 없음)
     case "unplanAsk": if (!S.plans[+d.i]) return; SHEET = {kind: "unplan", i: +d.i}; renderSheet(); break;  // 삭제하기 → 확인 팝업
@@ -3785,6 +3793,14 @@ if (SYNC) { const q = new URLSearchParams(location.search), code = q.get("error_
 if (!location.hash) history.replaceState(null, "", entryRoute(S.prefs, S));  // 처음 온 사람(취향 없음)의 첫 화면은 3단계 취향. #pick/… 같은 주소로 바로 들어온 사람은 그대로 둔다
 if (!TRK.peekAnon()) (S.proto ||= {}).notice = NOTICE_VER;  // 이 기기에서 처음 기록하는 사람은 지금 안내가 처음이라 알림 없음
 const NOTICE_SEEN = noticeSendOk();  // 이번에 안내 화면으로 바로 들어온 사람은 끌 기회를 준 뒤(다음 방문·확인 버튼) 보낸다
+// 카카오톡 인앱 브라우저(사용자 결정 2026-11-13): 카드 이미지 공유·저장이 잘 안 되는 곳이라 머리줄 아래에 [외부 브라우저로 열기]를 띄운다.
+// kakaotalk://web/openExternal 은 카카오톡이 주는 주소로, 안드로이드는 기본 브라우저·아이폰은 사파리로 지금 화면을 연다. 닫으면 이번 방문 동안은 다시 안 띄운다. 링크 미리보기 로봇(kakaotalk-scrap)은 뺀다
+const IN_KAKAO = (() => { const ua = (typeof navigator !== "undefined" && navigator.userAgent) || ""; return /KAKAOTALK/i.test(ua) && !/scrap/i.test(ua); })();
+const kakaoOut = () => "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+const kakaoBar = () => { const el = document.querySelector("#kakaobar"); if (!el) return; let off = false; try { off = sessionStorage.getItem("pickle_kakao_off") === "1"; } catch (e) {}
+  el.hidden = !IN_KAKAO || off; if (el.hidden) return;
+  el.innerHTML = `<span>카카오톡에서는 카드 공유·저장 같은 일부 기능이 잘 안 돼요</span><button type="button" class="kbtn" data-act="kakaoOpen">외부 브라우저로 열기</button><button type="button" class="kx" data-act="kakaoHide" aria-label="안내 닫기">✕</button>`; };
+kakaoBar();
 route();
 if (NOTICE_SEEN && !MOVING) { backfillReviews(); syncTickets(); }
 if (PULL_DONE_MSG) toast(PULL_DONE_MSG);
