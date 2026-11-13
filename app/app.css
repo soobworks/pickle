@@ -718,3 +718,21 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .kakaobar span{flex:1 1 auto;min-width:0;word-break:keep-all}
 .kakaobar .kbtn{flex:none;white-space:nowrap;border:0;border-radius:999px;padding:7px 12px;background:var(--fg);color:var(--bg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .kakaobar .kx{flex:none;border:0;background:transparent;color:var(--muted);font-size:15px;padding:4px 6px;cursor:pointer}
+/* 사용자 결정 2026-11-13 ─ 모든 화면: 버튼 글자는 가운데, 문장은 단어 중간에서 줄을 바꾸지 않는다(긴 낱말만 넘칠 때 자른다) */
+html{word-break:keep-all;overflow-wrap:break-word}
+button,.btn,.chip,.nb{text-align:center}
+.btn,.chip,.nb{justify-content:center}
+/* 관람 기록 · 이 조합 어때요?: 두 답을 한 줄 반반, 아래 작은 글씨 [다른 배우로 봤어요] */
+.crrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.crrow .chip{width:100%;min-width:0;min-height:44px;white-space:nowrap}
+.crcast{justify-self:start;border:0;background:none;padding:2px 0;font:inherit;font-size:12.5px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* 관람 기록 · 배우마다 어땠어요?: 배우 이름은 붉고 굵게(어두운 바탕에서 잘 보이는 밝은 빨강) */
+.rvwho{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.rvname{color:#F2646C;font-weight:800;font-size:16px}
+.rvcast{display:grid;gap:6px;padding-top:12px}
+/* 관람 기록 아래 [저장하기]·[건너뛰기]: 폰에서는 같은 너비, 글자 줄바꿈 없음 */
+.rvact .btn{white-space:nowrap}
+@media (max-width:599px){.rvact{grid-template-columns:1fr 1fr}}
+/* 버튼 글자 가운데(사용자 결정 2026-11-13): 왼쪽 정렬이던 메뉴 버튼·온보딩 선택 카드도 가운데로. 취향 카드(.tcard)는 버튼이지만 카드 모양이라 그대로 */
+.pmenu button,.obcard,.mood{text-align:center}
+.mood{justify-items:center}

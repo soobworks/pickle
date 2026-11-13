@@ -529,8 +529,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261105e">
-<link rel="stylesheet" href="app.css?v=20261105e">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261113a">
+<link rel="stylesheet" href="app.css?v=20261113a">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -565,7 +565,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611131557"></script>
+<script src="data.js?v=202611131625"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1306,9 +1306,11 @@ const pfSaveDay = day => { let n = 0;
     delete PF_DRAFT[rvKey(x)]; n++; }
   return n; };
 // 이 조합 어때요?(사용자 요청 2026-11-09): 내 티켓 '배우 및 조합 평가'(#tag/번호) 화면 맨 위. 답은 평가 초안(rdraft.cr)에 두고 [저장]할 때 티켓(x.cr)에 남긴다
+const CR_ANS = [["like", "마음에 들어요"], ["dislike", "별로예요"]];
 const crPanel = (e, names) => { e = e || {};
   const why = e.a !== "dislike" ? "" : `<p class="tiny muted">누구 때문인가요? <span>(선택)</span></p><div class="chips">${names.map(a => `<button type="button" class="chip x ${e.actor === a ? "on" : ""}" data-act="rvCrWhy" data-who="${esc(a)}" aria-pressed="${e.actor === a}">${esc(a)}</button>`).join("")}${SAT_WHY.map(([k, l]) => `<button type="button" class="chip x ${e.why === k ? "on" : ""}" data-act="rvCrWhy" data-k="${k}" aria-pressed="${e.why === k}">${esc(l)}</button>`).join("")}</div>`;
-  return `<div class="crbox"><div class="chips">${SAT.map(([k, l]) => `<button type="button" class="chip x ${e.a === k ? "on" : e.a ? "dim" : ""}" data-act="rvCr" data-a="${k}" aria-pressed="${e.a === k}"${e.a && e.a !== k ? " disabled" : ""}>${esc(l)}</button>`).join("")}</div>${e.a === "like" ? `<p class="tiny muted">좋아한 조합으로 기억할게요.</p>` : ""}${why}</div>`; };
+  // 답은 [마음에 들어요]·[별로예요] 둘을 한 줄에(사용자 결정 2026-11-13: 모르겠어요 삭제). 그 아래 작은 글씨 [다른 배우로 봤어요] → 배역마다 실제로 본 배우를 고치는 화면
+  return `<div class="crbox"><div class="crrow">${CR_ANS.map(([k, l]) => `<button type="button" class="chip x ${e.a === k ? "on" : e.a ? "dim" : ""}" data-act="rvCr" data-a="${k}" aria-pressed="${e.a === k}"${e.a && e.a !== k ? " disabled" : ""}>${esc(l)}</button>`).join("")}</div><button type="button" class="crcast" data-act="rvCastEdit">다른 배우로 봤어요</button>${e.a === "like" ? `<p class="tiny muted">좋아한 조합으로 기억할게요.</p>` : ""}${why}</div>`; };
 const crMirror = x => { if (!workOf(x.work)) return; const key = comboKey(D, x.work, x.cast), o = ((S.proto ||= {}).sat ||= {})[x.work] ||= {};
   if (x.cr?.a) o[key] = {a: x.cr.a, cast: Object.fromEntries(leadsOf(D, x.work, x.cast)), run: runLabelOf(D, x.work, x.date) || "", order: 0, src: "ticket", ...(x.cr.why ? {why: x.cr.why} : {}), ...(x.cr.actor ? {actor: x.cr.actor} : {})};
   else if (o[key]?.src === "ticket") delete o[key]; };
@@ -1366,15 +1368,18 @@ V.review = (work, date, time, entry = "log") => {
       ${sug.length ? `<div class="card"><h3>배우 조건에 넣을까요? <span class="small muted">고른 것만</span></h3><div class="chips">${sug.map(s => { const on = dr.picks.some(x => x.actor === s.actor); return `<button type="button" class="chip x ${on ? "on" : ""}" data-act="rvPick" data-a="${esc(s.actor)}" data-k="${s.kind}" aria-pressed="${on}">${esc(s.actor)} 배우를 ${s.kind === "fav" ? "애정 배우" : "피하고 싶은 배우"}에 넣기</button>`; }).join("")}</div>
         <div class="nbgrid"><button class="nb" data-act="rvSug" data-y="1" ${dr.picks.length ? "" : "disabled"}>넣기</button><button class="nb" data-act="rvSug" data-y="0">괜찮아요</button></div></div>` : `<button class="btn" data-act="rvSug" data-y="0">내 티켓으로</button>`}</div>`; }
   const roles = Object.keys(rv.cast);
+  if (dr.castEdit) return `<div class="one">${head}<div class="card"><h3>실제로 본 배우를 골라 주세요</h3><p class="small muted">배역마다 그날 나온 배우를 누르면 바뀌어요. 남긴 평가는 바꾼 배우에게 옮겨 가요.</p>
+    ${roles.map(role => { const a = rv.cast[role], R = esc(role), cs = [...new Set([a, ...rvRoleCands(D, rv, role)])].filter(Boolean);
+      return `<div class="rvcast"><p class="small"><b>${R}</b></p><div class="chips">${cs.map(b => `<button type="button" class="chip ${b === a ? "on" : ""}" data-act="rvSwap" data-r="${R}" data-a="${esc(b)}" aria-pressed="${b === a}"${b === a ? " disabled" : ""}>${esc(b)}</button>`).join("")}</div></div>`; }).join("")}</div>
+    <button class="btn" data-act="rvCastDone">다 골랐어요</button></div>`;  // [다른 배우로 봤어요] 화면(사용자 결정 2026-11-13)
   const row = role => { const a = rv.cast[role], r = rv.rows[role], R = esc(role), grp = rvGroups(D, RV_BASE_GROUPS), base = grp.length ? grp : [["", reviewChips(D, S, work, role, a).tags]], add = rvGroups(D, RV_MORE_GROUPS),  // 태그 사전 분류가 없으면 예전 순서(결정 43)
       more = RV_MORE[role] || add.some(([, ts]) => ts.some(t => r?.tags.includes(t)));  // 추가 태그를 골라 둔 배역은 펼친 채로
-    const others = rvRoleCands(D, rv, role).filter(b => b !== a);
     const tagBtn = t => { const on = r.tags.includes(t); return `<button type="button" class="chip ${on ? "on" : ""}" data-act="rvTag" data-r="${R}" data-t="${esc(t)}" aria-pressed="${on}">${esc(reviewLabel(t))}</button>`; };
     const group = ([g, ts]) => `${g ? `<p class="tiny muted">${esc(RV_GROUP_NAME[g.replace("배우 · ", "")] || g.replace("배우 · ", ""))}</p>` : ""}<div class="chips">${ts.map(tagBtn).join("")}</div>`;
     const tags = r && r.rate !== "meh" ? `<p class="tiny muted">${r.rate === "good" ? "어떤 점이 좋았나요?" : "어떤 점이 아쉬웠나요?"} <span>(${REVIEW_MAX}개까지)</span></p>
       ${base.map(group).join("")}${more ? add.map(group).join("") : add.length ? `<div class="chips"><button type="button" class="chip x" data-act="rvMore" data-r="${R}" aria-expanded="false">＋ 추가하기</button></div>` : ""}` : "";
-    return `<div class="rvrow"><div class="between"><span>${role === a ? `<b>${esc(a)}</b>` : `<b>${R}</b> · ${esc(a)}`}</span>${others.length ? `<button type="button" class="chip x" data-act="rvSwapOpen" data-r="${R}">다른 배우였어요</button>` : ""}</div>
-      ${dr.swap === role ? `<p class="tiny muted">이 배역에 나온 배우를 골라 주세요</p><div class="chips">${others.map(b => `<button type="button" class="chip x" data-act="rvSwap" data-r="${R}" data-a="${esc(b)}">${esc(b)}</button>`).join("")}</div>` : ""}
+    // 배우 이름은 붉고 굵게, [다른 배우였어요]·바꾸기 토글은 뺐다(사용자 결정 2026-11-13: 배우 바꾸기는 '이 조합 어때요?'의 [다른 배우로 봤어요] 화면 하나로)
+    return `<div class="rvrow"><div class="rvwho">${role === a ? `<b class="rvname">${esc(a)}</b>` : `<span class="tiny muted">${R}</span> <b class="rvname">${esc(a)}</b>`}</div>
       <div class="chips">${REVIEW_RATES.map(([k, l]) => `<button type="button" class="chip x ${r?.rate === k ? "on" : ""}" data-act="rvRate" data-r="${R}" data-v="${k}" aria-pressed="${r?.rate === k}">${l}</button>`).join("")}</div>${tags}</div>`; };
   const combos = Object.keys(D.comboTagLabels || {}).filter(t => !["전체 캐스트 밸런스", "해석 호환성"].includes(t) || (D.comboTags[work] || []).some(x => x.tag === t));
   return `<div class="one">${head}
@@ -1825,10 +1830,10 @@ const defaultSel = (D, S, work, from) => {
   const p = D.perfs.filter(x => x.work === work && x.date >= from && !closed(x)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
   return p ? Object.fromEntries(leadsOf(D, work, p.cast)) : {};
 };
-// 지금 선택: 사용자가 누른 배우가 있으면 그걸(아직 나오는 배우만), 나머지 배역은 미리 선택을 따른다
+// 지금 선택: 사용자가 누른 배우만(아직 나오는 배우만). 미리 고르지 않는다(사용자 결정 2026-11-13: 공연 화면도 추천 화면처럼 처음엔 고른 조합 없음). defaultSel 은 계산용으로 남긴다
 const curSel = (D, S, work, from) => {
-  const d = defaultSel(D, S, work, from), mine = S.proto?.sel?.[work] || {}, out = {};
-  for (const r of leadRolesOf(D, work)) { const c = duelCands(D, work, r.role, from), a = mine[r.role] && c.includes(mine[r.role]) ? mine[r.role] : d[r.role] || c[0]; if (a) out[r.role] = a; }
+  const mine = S.proto?.sel?.[work] || {}, out = {};
+  for (const r of leadRolesOf(D, work)) { const c = duelCands(D, work, r.role, from); if (mine[r.role] && c.includes(mine[r.role])) out[r.role] = mine[r.role]; }
   return out;
 };
 const selPerfs = (D, work, sel, from) => D.perfs.filter(p => p.work === work && p.date >= from && !closed(p) && Object.entries(sel).every(([r, a]) => p.cast[r] === a)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -1836,7 +1841,8 @@ const selDates = (D, work, sel, from) => [...new Set(selPerfs(D, work, sel, from
 // 배우를 누르면 그 배역만 바뀐다(나머지 배역은 지금 선택 그대로 굳힌다). 달력은 첫 달·고른 날 없음으로 돌아간다. 바뀌기 전 배우를 돌려준다(비교 제안용)
 const setSel = (D, S, work, role, actor, from) => {
   const before = curSel(D, S, work, from)[role], P = (S.proto ||= {});
-  (P.sel ||= {})[work] = {...curSel(D, S, work, from), [role]: actor};
+  const next = {...curSel(D, S, work, from), [role]: actor}; if (before === actor) delete next[role];  // 고른 배우를 다시 누르면 그 배역 선택을 푼다(미리 선택이 없어져서, 2026-11-13)
+  (P.sel ||= {})[work] = next;
   for (const k of ["cm", "cd"]) if (P[k]) delete P[k][work];
   if (before && before !== actor) (P.cmp ||= {})[work] = {role, a: before, b: actor}; else if (P.cmp) delete P.cmp[work];
   return before;
@@ -3226,10 +3232,10 @@ const datesSection = (ref, cls = "") => {  // cls: "pickcal" 이면 이 조합 �
     if (!ps) { cells += `<div class="day none ${redDay(date) ? "red" : ""}"><span class="n">${d}</span></div>`; continue; }
     const star1 = ps.some(p => (p.notes || []).some(n => /첫공|막공|폐막/.test(n))) ? `<span class="star">★</span>` : "";
     cells += `<button type="button" class="day has ${date === sd ? "pin" : ""} ${redDay(date) ? "red" : ""}" data-act="calDay" data-work="${esc(work)}" data-d="${date}" aria-label="${md(date)} 회차 ${ps.length}개"><span class="n">${d}</span>${star1}</button>`; }
-  return `<section id="dates" class="sec${cls ? " " + cls : ""}"><h2>이 조합으로 볼 수 있는 날</h2>
+  return `<section id="dates" class="sec${cls ? " " + cls : ""}"><h2>${Object.keys(sel).length ? "이 조합으로 볼 수 있는 날" : "공연 날짜"}</h2>
     <div class="card"><div class="calnav"><button type="button" class="chip x" data-act="calMove" data-work="${esc(work)}" data-d="-1" aria-label="이전 달" ${i <= 0 ? "disabled" : ""}>‹</button><b>${+m.slice(0, 4)}년 ${+m.slice(5, 7)}월</b><button type="button" class="chip x" data-act="calMove" data-work="${esc(work)}" data-d="1" aria-label="다음 달" ${i >= ms.length - 1 ? "disabled" : ""}>›</button></div>
       <div class="month"><div class="dow"><span class="red">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="red">토</span></div><div class="days">${cells}</div></div>
-      <p class="tiny muted">${cls === "pickcal" ? "붉은 테두리 날에" : "진한 날에"} 이 조합이 나와요. ★는 첫공·막공이에요.</p><p class="tiny muted">공식 캐스팅 일정이라 바뀔 수 있어요.</p></div>
+      <p class="tiny muted">${!Object.keys(sel).length ? "진한 날에 공연이 있어요. 배우를 고르면 그 배우가 나오는 날만 남아요." : cls === "pickcal" ? "붉은 테두리 날에 이 조합이 나와요." : "진한 날에 이 조합이 나와요."} ★는 첫공·막공이에요.</p><p class="tiny muted">공식 캐스팅 일정이라 바뀔 수 있어요.</p></div>
     ${sd ? (byDate[sd] || []).map(p => sessionCard(work, p)).join("") : `<p class="small muted">날짜를 누르면 그날 회차와 전체 캐스트가 나와요.</p>`}</section>`;
 };
 
@@ -3682,7 +3688,8 @@ document.addEventListener("click", e => {
     case "rvTag": { const dr = S.proto?.rdraft; if (!dr) return; const r = toggleRvTag(dr.rv, d.r, d.t); if (r === false) { toast(`태그는 ${REVIEW_MAX}개까지 고를 수 있어요`); return; } if (r) { save(); route(); } break; }
     case "rvMore": RV_MORE[d.r] = true; route(); break;
     case "rvCombo": { const dr = S.proto?.rdraft; if (!dr) return; if (toggleRvCombo(dr.rv, d.t) === false) { toast(`${REVIEW_MAX}개까지 고를 수 있어요`); return; } save(); route(); break; }
-    case "rvSwapOpen": { const dr = S.proto?.rdraft; if (!dr) return; dr.swap = dr.swap === d.r ? "" : d.r; route(); break; }
+    case "rvCastEdit": { const dr = S.proto?.rdraft; if (!dr) return; dr.castEdit = true; route(); window.scrollTo(0, 0); break; }  // 이 조합 어때요? → 다른 배우로 봤어요
+    case "rvCastDone": { const dr = S.proto?.rdraft; if (!dr) return; dr.castEdit = false; save(); route(); break; }
     case "rvSwap": { const dr = S.proto?.rdraft; if (!dr || !swapRvActor(D, dr.rv, d.r, d.a)) return; dr.swap = ""; save(); route(); break; }  // 다른 배우였어요(결정 50)
     case "rvPub": { const dr = S.proto?.rdraft; if (!dr) return; dr.rv.pub = d.v === "1"; save(); route(); break; }
     case "lkCast": LK.cast = LK.cast.includes(d.a) ? LK.cast.filter(a => a !== d.a) : [...LK.cast, d.a]; route(); break;
