@@ -567,7 +567,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611132353"></script>
+<script src="data.js?v=202611140128"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2773,6 +2773,9 @@ const flipCard = () => {
 const tasteTags = p => (p.axes || []).map(k => k.startsWith("tag:") ? k.slice(4) : D.axes.flatMap(a => [[a.left, a.l], [a.right, a.r]]).find(([x]) => x === k)?.[1] || k);
 // 내 취향 줄글 요약(사용자 요청 2026-11-03): 본진·애정 배우와 고른 답을 모아 '당신은 ○○ 무대를 좋아하는 관객이에요' 한 문장. 규칙으로 만들고 점수·진단이 아니다. 고른 게 없으면 ""
 const tasteLabels = p => ONBOARD_QS.flatMap(q => q.opts.filter(([, t]) => (p.axes || []).includes(tagKey(t))).map(([l]) => l));
+// 정해 둔 꾸밈말이 없는 선택지: 이름 + 이/가 돋보이는. 꾸미는 말로 끝나는 이름은 고쳐 쓴다(사용자 요청 2026-11-14) — 목소리 질문의 선택지(맑고 깨끗한·허스키하고 거친 등) → '~ 음색이 돋보이는'
+const LABEL_STAGE = {"실제 사람처럼 자연스럽게": "자연스러운 연기가 돋보이는", "상대 인물과의 관계를 중심으로": "인물 간의 관계가 돋보이는", "해석의 방향이 맞물리는": "해석의 방향이 맞물리는"};
+const labelStage = l => LABEL_STAGE[l] || (ONBOARD_QS[0].opts.some(([x]) => x === l) ? `${l} 음색이 돋보이는` : `${l}${iga(l)} 돋보이는`);
 // 문장 재료: who(본진·애정 배우) + stage(무대 꾸밈말). 고른 게 없으면 null. 내 취향 탭 문장(tasteSentence)과 홈 카드 문장(cardLine)이 같이 쓴다
 const tasteParts = p => {
   const [bon, love] = favSplit(p), labels = tasteLabels(p), t = new Set(tasteTags(p)), has = (...xs) => xs.some(x => t.has(x));
@@ -2796,7 +2799,7 @@ const tasteParts = p => {
     : has("텍스트 충실형", "자유 해석·애드립형") ? "해석이 분명한"
     : has("순수·사랑스러운 해석", "성숙한 해석") ? "인물의 결이 살아 있는"
     : has("상징적·초월적", "철학적·해석 여지") ? "여운과 해석 여지가 남는"
-    : labels.length ? `${labels[0]}${iga(labels[0])} 돋보이는`
+    : labels.length ? labelStage(labels[0])
     : p.prio === "노래" ? "노래가 중심인" : p.prio === "연기" ? "연기와 캐릭터가 살아 있는" : p.prio === "고루" ? "노래·연기·몸짓이 고루 어우러진" : "좋아하는 배우가 빛나는";
   // 본진은 '가장 좋아하고', 애정은 '선호하는'. 여러 명이어도 줄이지 않고 전부 쓴다(사용자 요청 2026-11-05)
   const who = bon.length && love.length ? `${bon.join("·")} 배우를 가장 좋아하고 ${love.join("·")} 배우를 선호하는, ` : bon.length ? `${bon.join("·")} 배우를 가장 좋아하는, ` : love.length ? `${love.join("·")} 배우를 선호하는, ` : "";
@@ -3529,11 +3532,11 @@ document.addEventListener("click", e => {
     case "acMove": if (moveActor(D, S, d.work, d.a, +d.d)) { save(); route(); } break;
     case "acReset": resetActorConds(S, d.work); save(); route(); break;
     case "acAvoidAdd": { const el = $("#acAvoid"), ns = pickNames(D, el?.value).map(([v]) => v); if (!ns.length) return; const miss = ns.filter(v => setActorCond(D, S, d.work, v, "avoid") === null);
-      el.value = miss.join(", "); save(); route(); if (miss.length) toast(`${miss.join("·")}: 이 작품에 나오는 배우만 고를 수 있어요`); $("#acAvoid")?.focus(); break; }
+      el.value = miss.join(", "); save(); route(); if (miss.length) { toast(`${miss.join("·")}: 이 작품에 나오는 배우만 고를 수 있어요`); $("#acAvoid")?.focus(); } break; }
     case "wtReset": { const st = S.cal[d.w]; if (st) { st.edited = false; delete st.prio; followBase(st, S.prefs?.axes || []); } save(); route(); break; }  // 평소 취향으로 되돌리기
     case "addAvoid": { const el = $("#avoidIn"), ns = pickNames(D, el?.value), P = prefsOf(); if (!ns.length) return;
       for (const [v, born] of ns) { if (born) (P.born ||= {})[v] = born; P.favs = P.favs.filter(a => a !== v); if (P.must) P.must = P.must.filter(a => a !== v); if (P.bonjin) P.bonjin = P.bonjin.filter(a => a !== v); if (!(P.avoid ||= []).includes(v)) P.avoid.push(v); }
-      el.value = ""; save(); route(); $("#avoidIn")?.focus(); break; }
+      el.value = ""; save(); route(); break; }  // 추가한 뒤에는 검색 칸을 다시 누르지 않는다(누른 상태면 이름 목록이 다시 뜬다. 사용자 요청 2026-11-14)
     case "rmAvoid": { const P = prefsOf(); P.avoid = (P.avoid || []).filter(a => a !== d.a); save(); route(); break; }
     case "tasteSkipAll": { prefsOf(); save(); location.hash = "#home"; break; }  // 취향을 한 번도 안 고르고 전체 목록으로
     case "meDone": { delete prefsOf().must; save(); snapTaste(); CARD_BACK = false; location.hash = "#home"; if (hasTaste(S.prefs)) toast("취향을 저장했어요"); break; }  // 내 취향 확인 버튼 → 홈 취향 카드(앞면)
@@ -3637,7 +3640,7 @@ document.addEventListener("click", e => {
       for (const [v, born] of ns) { if (born) (P.born ||= {})[v] = born; if (P.avoid) P.avoid = P.avoid.filter(a => a !== v); if (!P.favs.includes(v)) { P.favs.push(v); if (!knownActor(D, v)) noteRequest(v); }
         P.bonjin = (P.bonjin || []).filter(a => a !== v); if (d.k === "b") P.bonjin.push(v); }  // 같은 배우를 다른 칸에 넣으면 그 칸으로 옮긴다
       if (!P.bonjin.length) delete P.bonjin;
-      el.value = ""; save(); route(); $(id)?.focus(); break; }
+      el.value = ""; save(); route(); break; }  // 추가한 뒤 이름 목록은 닫는다. 검색 칸을 누를 때만 다시 뜬다(사용자 요청 2026-11-14)
     case "likeAsk": likeOpen.add(d.a); location.hash = "#me"; setTimeout(() => [...document.querySelectorAll(".likebox")].find(x => x.dataset.a === d.a)?.scrollIntoView(), 60); break;  // 홈의 '어떤 점이 좋아요?' → 내 취향의 그 배우 입력 칸을 열어 둔다
     case "rmFav": { const P = prefsOf(); P.favs = P.favs.filter(a => a !== d.a); if (P.must) P.must = P.must.filter(a => a !== d.a); if (P.bonjin) P.bonjin = P.bonjin.filter(a => a !== d.a); save(); route(); break; }
     case "setGrade": { const P = prefsOf(); P.grade = P.grade === d.g ? "" : d.g; save(); route(); break; }
@@ -3705,8 +3708,8 @@ document.addEventListener("click", e => {
     case "lkCast": LK.cast = LK.cast.includes(d.a) ? LK.cast.filter(a => a !== d.a) : [...LK.cast, d.a]; route(); break;
     case "lkRole": { if (LK.rc[d.r] === d.a) delete LK.rc[d.r]; else LK.rc[d.r] = d.a; LK.auto = false; route(); break; }  // 배역마다 한 명(다시 누르면 뺀다)
     case "lkTime": { const lc = logCastOf(LK.id); LK.time = d.t; if (lc) lkFill(lc); route(); break; }  // 회차표의 그날 회차 시각 칩
-    case "lkAdd": { const el = $("#lkadd"), as = pickNames(D, el?.value).map(([v]) => v); if (!as.length) { el?.focus(); return; } LK.cast = [...new Set([...LK.cast, ...as])]; el.value = ""; route(); $("#lkadd")?.focus(); break; }
-    case "lmAdd": { const el = $("#lmadd"), as = pickNames(D, el?.value).map(([v]) => v); if (!as.length) { el?.focus(); return; } LM.cast = [...new Set([...LM.cast, ...as])]; el.value = ""; route(); $("#lmadd")?.focus(); break; }
+    case "lkAdd": { const el = $("#lkadd"), as = pickNames(D, el?.value).map(([v]) => v); if (!as.length) { el?.focus(); return; } LK.cast = [...new Set([...LK.cast, ...as])]; el.value = ""; route(); break; }
+    case "lmAdd": { const el = $("#lmadd"), as = pickNames(D, el?.value).map(([v]) => v); if (!as.length) { el?.focus(); return; } LM.cast = [...new Set([...LM.cast, ...as])]; el.value = ""; route(); break; }
     case "lmDel": LM.cast = LM.cast.filter(a => a !== d.a); route(); break;
     case "lmGo": { const title = LM.title.trim(), from = today(); if (!LM.cast.length) return;
       if (!title) { toast("공연 이름을 적어 주세요"); $("#lmTitle")?.focus(); return; }
