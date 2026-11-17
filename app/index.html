@@ -568,7 +568,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611172123"></script>
+<script src="data.js?v=202611172140"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -919,7 +919,7 @@ function personalCounts(S) {  // 좋았던 회차 / 아쉬웠던 회차 (같은 
 // </personal-weights>
 // <taste-first>
 // 핵심 배역(docs/261027_2 10.1절): 주연/조연(비중)을 쓰지 않고 roles.tsv 의 배역 전체를 같은 무게로, 순서도 roles.tsv 대로. 시카고 에이모스 하트·메리 선샤인은 추천 단위에서 뺀다(결정 13·28)
-const NOT_UNIT = {"시카고": ["에이모스 하트", "메리 선샤인"]};
+const NOT_UNIT = {"시카고": ["에이모스 하트", "메리 선샤인"], "마하고니": ["코러스"]};  // 마하고니 코러스 칸 = 그 회차 코러스 여러 명('김한결, 마이삭'), recommend.py NOT_UNIT 과 같게
 const unitRoles = (D, work) => ((D.roles || {})[work] || []).filter(r => !(NOT_UNIT[work] || []).includes(r.role));
 const isUnit = (D, work, role) => unitRoles(D, work).some(r => r.role === role);
 const unitCast = (D, work, cast) => unitRoles(D, work).filter(r => cast[r.role]).map(r => [r.role, cast[r.role]]);  // [배역, 배우] roles.tsv 순서
@@ -1192,7 +1192,7 @@ V.detail = (work, date, time) => {
     <div class="card accent"><div class="pick" style="grid-template-columns:68px 1fr">${whenTile(p)}
       <div class="head sm">${posterEl(w)}<div><h2>${esc(work)}</h2><p class="tiny muted">${esc(run.label || "")} · ${esc(run.venue || "")}</p></div></div></div></div>
     <div class="card"><h3>이 회차 캐스트</h3>
-      <div>${order.map(([role, a]) => `<div class="actor"><div class="name"><span><b>${esc(role)}</b>${esc(a)}</span></div>
+      <div>${order.flatMap(([role, c]) => isUnit(D, work, role) ? [[role, c]] : String(c).split(", ").map(a => [role, a])).map(([role, a]) => `<div class="actor"><div class="name"><span><b>${esc(role)}</b>${esc(a)}</span></div>
           ${videoOf(work, a) ? videoRow(videoOf(work, a)) : ""}</div>`).join("")}</div></div>  <!-- 배우 태그는 보이지 않는다(사용자 요청 2026-11-09) -->
     </div>
     <div class="side">
