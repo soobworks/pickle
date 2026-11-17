@@ -23,8 +23,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 /* 페이지 전체 글꼴: 광양햇살체(광양시 × 투게더그룹, 공공누리 제1유형: 출처 표시·상업 이용·변형 가능. 사용자 요청 2026-11-09). 굵기 100~500 은 Regular, 600 이상(굵은 글씨)은 Bold. 없는 글자는 다음 글꼴로. 출처는 화면 아래 '글꼴:' 줄(광양시 페이지 링크) */
-@font-face{font-family:"GwangyangSunshine";src:url("fonts/GwangyangSunshine-Regular.woff2") format("woff2");font-weight:100 500;font-style:normal;font-display:swap}
-@font-face{font-family:"GwangyangSunshine";src:url("fonts/GwangyangSunshine-Bold.woff2") format("woff2");font-weight:600 900;font-style:normal;font-display:swap}
+/* 광양햇살체는 글꼴 정보의 위 여백(1150)이 아래(330)보다 커서 글자가 줄 가운데보다 0.11em 아래에 놓인다. 줄 높이 합(1.48em)은 그대로 두고 위 104%·아래 44%로 나눠 글자 모양(한글 -150~750)의 가운데에 맞춘다(2026-11-17 버튼 글자 가운데 정렬) */
+@font-face{font-family:"GwangyangSunshine";src:url("fonts/GwangyangSunshine-Regular.woff2") format("woff2");font-weight:100 500;font-style:normal;font-display:swap;ascent-override:104%;descent-override:44%;line-gap-override:0%}
+@font-face{font-family:"GwangyangSunshine";src:url("fonts/GwangyangSunshine-Bold.woff2") format("woff2");font-weight:600 900;font-style:normal;font-display:swap;ascent-override:104%;descent-override:44%;line-gap-override:0%}
 /* hidden 속성은 항상 숨긴다: .undobar 처럼 display 를 정한 클래스가 hidden 의 기본 display:none 을 덮어쓰는 걸 한 번에 막는다(뒤로 버튼은 아래 .top button[hidden] 이 더 구체적이라 자리를 지킨다) */
 [hidden]{display:none!important}
 /* 폰 한 대(390px) 안에서 도는 가안. 핵심 화면은 캐스팅 캘린더: 날짜마다 누가 나오는지 보이고, 배우를 고르면 그 배우 나오는 날만 켜진다. */
@@ -531,8 +532,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261117a">
-<link rel="stylesheet" href="app.css?v=20261117a">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261117b">
+<link rel="stylesheet" href="app.css?v=20261117b">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -568,7 +569,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611172147"></script>
+<script src="data.js?v=202611172201"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
