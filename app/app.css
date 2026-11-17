@@ -431,8 +431,8 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .rcmore{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 /* 순위(2026-11-03): 카드 오른쪽 위 알약 + 순위 설명 한 줄. 날짜 줄은 알약 자리를 비워 둔다 */
 .rcard{position:relative}
-.rcard .rcwhen{padding-right:64px}
-.rcrank{position:absolute;top:14px;right:16px;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--fg);font-size:12.5px;font-weight:800;line-height:1.4}
+.rcard .rcwhen{padding-right:136px}
+.rcrank{padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--fg);font-size:12.5px;font-weight:800;line-height:1.4}
 .rcrank.r1{background:var(--fg);color:var(--bg)}
 .rcnote{margin:0;color:var(--muted);line-height:1.5;word-break:keep-all}
 /* 본 공연 기록하기: 검색 칸(제목보다 작게)과 KOPIS 공연 기록 */
@@ -740,3 +740,18 @@ button,.btn,.chip,.nb{text-align:center}
 .mood{justify-items:center}
 
 /* 조합 추천 작품 배지(사용자 요청 2026-11-13): '지금 하는 공연 전체'에서 피클이 조합을 추천하는 공연 포스터 위에 글자 배지(실링 도장은 왼쪽 위, 배지는 오른쪽 위) */
+
+/* 이 조합 어때요? 아이콘(2026-11-17): 순위 왼쪽 하트·떰즈다운. 처음엔 붉은 테두리만, 고르면 붉게 채운다 */
+.rctop{position:absolute;top:10px;right:16px;display:flex;align-items:center;gap:4px}
+.saticon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%}
+.saticon svg{width:24px;height:24px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.saticon.on svg{fill:var(--accent)}
+.saticon:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* 추천 조합 아래 '더 최적의 조합을 원한다면?' + 붉은 버튼 두 개(폰은 위아래) */
+.moreopt{display:grid;gap:10px}
+.moreq{margin:6px 0 0;color:#fff;font-weight:800;font-size:16px;text-align:center}
+.morebtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.morebtns .btn small{font-size:.82em;font-weight:600;margin-right:.25em}
+@media (max-width:599px){.morebtns{grid-template-columns:1fr}}
+/* 작품 취향 수정 화면의 '평소 취향이에요…' 안내 */
+.wtnote{margin:0;color:#fff;font-weight:800;font-size:16px;line-height:1.5;word-break:keep-all}

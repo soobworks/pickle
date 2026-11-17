@@ -531,8 +531,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261113c">
-<link rel="stylesheet" href="app.css?v=20261113c">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261117a">
+<link rel="stylesheet" href="app.css?v=20261117a">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -567,7 +567,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611160937"></script>
+<script src="data.js?v=202611171338"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3069,17 +3069,18 @@ const actorCal = (w, ref, back = `#find/${esc(w.name)}/actor/recs`) => {  // 배
 const workEdit = w => { const st = (S.cal[w] ||= {actors: [], period: "all"}), base = S.prefs || {}; if (!st.edited) { st.axes = [...(base.axes || [])]; st.prio = base.prio || ""; st.any = [...(base.any || [])]; st.edited = true; } return st; };  // 처음 고칠 때 온보딩 값을 복사(결정 24)
 // 작품 취향 확인(6.3절, 사용자 요청 2026-11-03): 평소 취향(이 작품에서 고쳤으면 그 값)을 줄글로만 보이고, [수정하기](#find/작품/edit)를 누르면 요약 아래로 기대 질문이 펼쳐진다
 const workTaste = (w, open = false) => `<div class="one"><div><p class="eyebrow">${esc(w.name)}</p><h1>이번 ${esc(w.name)} 공연에서 중요한 게 무엇인가요?</h1></div>
-  ${tasteSum({...workPrefs(S, w.name), favs: S.prefs?.favs || [], bonjin: S.prefs?.bonjin || []}, open, `#find/${esc(w.name)}/edit`, `#find/${esc(w.name)}/taste`,workEdited(S, w.name) ? `<p class="small">이 작품에만 적용돼요</p>` : `<p class="small muted">평소 취향이에요. 이 작품에서만 다르게 보고 싶다면 수정해 주세요.</p>`)}
+  ${tasteSum({...workPrefs(S, w.name), favs: S.prefs?.favs || [], bonjin: S.prefs?.bonjin || []}, open, `#find/${esc(w.name)}/edit`, `#find/${esc(w.name)}/taste`,workEdited(S, w.name) ? `<p class="small">이 작품에만 적용돼요</p>` : `<p class="wtnote">평소 취향이에요. 이 작품에서만 다르게 보고 싶다면 수정해 주세요.</p>`)}
   ${open ? onboardBody("2", true, w.name).replace(/^<h2>[^<]*<\/h2>/, "") : ""}
-  <a class="btn" href="#find/${esc(w.name)}/how">이대로 찾기</a>
+  <a class="btn" href="#find/${esc(w.name)}${hasTaste(S.prefs) ? "" : "/how"}">이대로 찾기</a>
   ${S.cal[w.name]?.edited ? `<button class="chip x" data-act="wtReset" data-w="${esc(w.name)}">평소 취향으로 되돌리기</button>` : ""}</div>`;
-// 작품을 고르면 추천 조합 2개가 먼저(사용자 요청 2026-11-09). 배우별 영상·태그는 없다. 아래 [내 취향 수정하고 다시 찾기] → 작품 취향 확인(#find/작품/taste) → 이대로 찾기 → 배우 먼저·날짜 먼저
+// 작품을 고르면 추천 조합 2개가 먼저(사용자 요청 2026-11-09). 배우별 영상·태그는 없다. 아래 '더 최적의 조합을 원한다면?'(2026-11-17): [배우/ 날짜 정하기] → 배우 먼저·날짜 먼저(#find/작품/how), [이 작품에서 내 취향 수정하기] → 작품 취향 수정(#find/작품/edit) → 이대로 찾기 → 다시 추천 조합
 // 조합을 고르면 그 조합의 캘린더(#find/작품/cal). 취향이 없으면 바로 작품 취향 확인으로
 const workRecs = w => {
   const work = w.name, W = esc(work), from = today(), recs = comboRecs(D, S, work, from), sel = curSel(D, S, work, from), hints = recs.length ? [] : noComboHints(D, S, work, from);
   return `<div class="one sv">${recHead(W, "나에게 맞는 추천 조합")}${pinAskCards(work)}
     <section id="cast" class="sec">${recs.length ? `<div class="combochips">${satCards(work, sel, null, "rec")}</div>` : `<div class="card nocombo"><p class="small ctr"><b>지금 취향에 맞는 조합이 없어요.</b></p>${noComboList(hints) || `<p class="small muted ctr">취향을 바꾸거나 배우 먼저 고르기로 찾아보세요.</p>`}</div>`}</section>
-    <a class="btn ghost" href="#find/${W}/taste">내 취향 수정하고 다시 찾기</a>
+    ${recs.length ? `<div class="moreopt"><p class="moreq">더 최적의 조합을 원한다면?</p><div class="morebtns"><a class="btn" href="#find/${W}/how">배우/ 날짜 정하기</a><a class="btn" href="#find/${W}/edit"><small>이 작품에서</small> 내 취향 수정하기</a></div></div>`
+      : `<div class="morebtns"><a class="btn" href="#find/${W}/how">배우/ 날짜 정하기</a><a class="btn" href="#find/${W}/edit"><small>이 작품에서</small> 내 취향 수정하기</a></div>`}
     <div class="betafoot">${betaLink(BETA_TEXT, "ghost betabtn")}</div></div>`;
 };
 V.find = (work, how, step) => {
@@ -3172,6 +3173,10 @@ const nameEm = a => Math.ceil([...a].reduce((s, c) => s + (/[가-힣]/.test(c) ?
 const roleBreak = r => esc(r).replace(/[가-힣]{5,}/g, w => `${w.slice(0, Math.ceil(w.length / 2))}<wbr>${w.slice(Math.ceil(w.length / 2))}`);  // 공백 없는 긴 배역명이 칸보다 길 때만 가운데서 나눈다(베아트/리체). 폰 칸은 넓어서 나뉘지 않는다
 // 추천 조합 카드(docs/261027_2 10절): 카드마다 [이 조합 고르기] + '이 조합 어때요?' 만족도. 별로예요 → '누구 때문인가요?' → 배우를 고르면 이 작품의 피하고 싶은 배우에 넣을지 묻는다(동의할 때만)
 const REC_SHOWN = new Set();  // 이번 방문에서 rec_shown 을 남긴 작품|화면
+// 이 조합 어때요?(사용자 요청 2026-11-17): 순위 왼쪽 하트(마음에 들어요)·떰즈다운(별로예요) 아이콘. 고르면 붉게 채워지고, 다시 누르면 풀린다. 다른 쪽을 누르면 그쪽으로 바뀐다
+const SAT_ICON = {like: '<path d="M12 20.5s-7.5-4.6-7.5-10.1A4.2 4.2 0 0 1 12 7.6a4.2 4.2 0 0 1 7.5 2.8c0 5.5-7.5 10.1-7.5 10.1z"/>',
+  dislike: '<path d="M7.5 4.5h9.2a2 2 0 0 1 2 1.6l1.2 6.4a2 2 0 0 1-2 2.4h-4.4l.7 3.4a1.8 1.8 0 0 1-3.3 1.3L7.5 14.5z"/><path d="M3.5 4.5h4v10h-4z"/>'};
+const satIcons = (W, DD, i, e) => [["like", "마음에 들어요"], ["dislike", "별로예요"]].map(([k, l]) => `<button type="button" class="saticon${e?.a === k ? " on" : ""}" data-act="sat" data-work="${W}"${DD} data-i="${i}" data-a="${k}" aria-pressed="${e?.a === k}" aria-label="이 조합 어때요? ${l}" title="${l}"><svg viewBox="0 0 24 24" aria-hidden="true">${SAT_ICON[k]}</svg></button>`).join("");
 const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 먼저 ② — 고르면 고른 조합의 캘린더 화면으로
   const from = today(), sh = shownRecs(D, S, work, from, inDates), sat = satOf(S, work), W = esc(work), DD = inDates ? ` data-dd="1"` : "";  // 날짜 먼저 카드는 data-dd 로 구분
   if (sh.list.length && !S.proto?.recSeen) { (S.proto ||= {}).recSeen = today(); save(); }
@@ -3194,10 +3199,9 @@ const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 �
     const why = e?.a !== "dislike" ? "" : `<p class="tiny muted">누구 때문인가요? <span>(선택)</span></p><div class="chips">${names.map(a => `<button type="button" class="chip x ${e.actor === a ? "on" : ""}" data-act="satWhy" data-work="${W}"${DD} data-i="${i}" data-who="${esc(a)}" aria-pressed="${e.actor === a}">${esc(a)}</button>`).join("")}${SAT_WHY.map(([k, l]) => `<button type="button" class="chip x ${e.why === k ? "on" : ""}" data-act="satWhy" data-work="${W}"${DD} data-i="${i}" data-k="${k}" aria-pressed="${e.why === k}">${esc(l)}</button>`).join("")}</div>
       ${e.actor && !e.ask ? `<div class="pinask"><p class="small">${esc(e.actor)} 배우를 피하고 싶은 배우에 추가할까요? <span class="muted">이 작품에서만 빠져요.</span></p><div class="nbgrid"><button class="nb" data-act="satAvoid" data-work="${W}"${DD} data-i="${i}" data-y="1">추가</button><button class="nb" data-act="satAvoid" data-work="${W}"${DD} data-i="${i}" data-y="0">아니요</button></div></div>`
         : e.actor && e.ask === "yes" ? `<p class="tiny muted">${esc(e.actor)} 배우를 이 작품에서 뺐어요.</p>` : ""}`;
-    return `<div class="card rcard">${whenHead(c.key)}<span class="rcrank${i === 0 ? " r1" : ""}">${i + 1}순위</span><div class="rcast" style="--n:${names.length}">${Object.entries(c.cast).map(([r, a]) => `<div class="${["rca", kinds.has(a) ? "want" : "", (rec?.evByActor?.[a] || []).length ? "fit" : ""].filter(Boolean).join(" ")}" style="--m:${nameEm(a)}"><span>${roleBreak(r)}</span><b>${esc(a)}</b></div>`).join("")}</div><p class="tiny muted">${inDates ? "고른 날짜 중 " : "남은 "}회차 ${nPerf(c.key)}개</p>${whyLines(c)}
+    return `<div class="card rcard">${whenHead(c.key)}<div class="rctop">${satIcons(W, DD, i, e)}<span class="rcrank${i === 0 ? " r1" : ""}">${i + 1}순위</span></div><div class="rcast" style="--n:${names.length}">${Object.entries(c.cast).map(([r, a]) => `<div class="${["rca", kinds.has(a) ? "want" : "", (rec?.evByActor?.[a] || []).length ? "fit" : ""].filter(Boolean).join(" ")}" style="--m:${nameEm(a)}"><span>${roleBreak(r)}</span><b>${esc(a)}</b></div>`).join("")}</div><p class="tiny muted">${inDates ? "고른 날짜 중 " : "남은 "}회차 ${nPerf(c.key)}개</p>${whyLines(c)}
       <button class="rcpick${nav ? " go" : ""} ${on ? "on" : ""}" data-act="selCombo" data-work="${W}"${DD}${nav ? ` data-nav="${nav === "rec" ? "rec" : 1}"` : ""} data-i="${i}" aria-pressed="${on}">${on ? (nav ? "고른 조합 · 날짜 보기" : "고른 조합") : nav ? "이 조합으로 날짜 보기" : "이 조합 고르기"}</button>
-      <div class="satbox"><p class="satq"><b>이 조합 어때요?</b> <span class="satwhy">답하면 다음 추천에 반영돼요</span></p><div class="chips">${SAT.map(([k, l]) => `<button type="button" class="chip x ${e?.a === k ? "on" : e?.a ? "dim" : ""}" data-act="sat" data-work="${W}"${DD} data-i="${i}" data-a="${k}" aria-pressed="${e?.a === k}"${e?.a && e.a !== k ? " disabled" : ""}>${esc(l)}</button>`).join("")}</div>
-      ${e?.a === "like" ? `<p class="tiny muted">좋아한 조합으로 기억할게요. 이 배우들이 나오는 조합을 앞에 보여 드려요.</p>` : ""}${why}</div></div>`; };
+      ${e?.a === "like" ? `<div class="satbox"><p class="tiny muted">좋아한 조합으로 기억할게요. 이 배우들이 나오는 조합을 앞에 보여 드려요.</p></div>` : e?.a === "dislike" ? `<div class="satbox">${why}</div>` : ""}</div>`; };  // 답한 뒤에만 아래 칸(좋아요 안내 · 누구 때문인가요?)
   const more = sh.again ? `<p class="tiny muted">다시 추천은 한 번만 할 수 있어요</p>`
     : sh.list.length < 2 ? `<p class="tiny muted">이 조건에서는 조합이 하나뿐이에요</p>`
     : `<button class="btn ghost" data-act="recAgain" data-work="${W}"${DD}>다시 추천받기</button>`;
@@ -3592,7 +3596,7 @@ document.addEventListener("click", e => {
     case "selCombo": { const c = cardsOf(d).list[+d.i]; if (!c) return; setSelCast(S, d.work, c.cast);
       track("cast_select", {work: d.work, path: d.dd ? "date" : d.nav === "rec" || CUR.name !== "find" ? "show" : "actor", rank: +d.i + 1, to_calendar: !!d.nav});
       if (d.nav) ((S.proto ||= {}).pick ||= {})[d.work + (d.dd ? "#날짜" : "")] = c.key; save(); if (d.nav) location.hash = d.nav === "rec" ? `#find/${d.work}/cal` : `#find/${d.work}/${d.dd ? "date" : "actor"}/cal`; else route(); break; }  // 배우 먼저: 고른 조합의 캘린더 화면으로
-    case "sat": { const c = cardsOf(d).list[+d.i]; if (!c) return; const cur = satOf(S, d.work)[c.key]; if (cur && cur.a !== d.a) return;  // 하나를 고르면 나머지 둘은 꺼진다(고른 걸 다시 눌러 풀어야 바꿀 수 있다)
+    case "sat": { const c = cardsOf(d).list[+d.i]; if (!c) return; // 아이콘(2026-11-17): 다른 쪽을 누르면 바로 바뀐다(setSat 이 덮어쓴다). 같은 쪽을 다시 누르면 풀린다
       const run = runLabelOf(D, d.work, (D.perfs.find(p => p.work === d.work && comboKey(D, d.work, p.cast) === c.key) || {}).date || today());
       const r = setSat(S, d.work, c.key, c.cast, d.a, run, +d.i + 1); if (r === null) return;
       track("combo_fit", r ? satRecord(D, S, d.work, c.key) : {work: d.work, run, cast: c.cast, answer: "clear"}); save(); route(); break; }  // 다시 누르면 풀린다
