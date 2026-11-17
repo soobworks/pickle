@@ -569,7 +569,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611172201"></script>
+<script src="data.js?v=202611172211"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -921,6 +921,9 @@ function personalCounts(S) {  // 좋았던 회차 / 아쉬웠던 회차 (같은 
 // <taste-first>
 // 핵심 배역(docs/261027_2 10.1절): 주연/조연(비중)을 쓰지 않고 roles.tsv 의 배역 전체를 같은 무게로, 순서도 roles.tsv 대로. 시카고 에이모스 하트·메리 선샤인은 추천 단위에서 뺀다(결정 13·28)
 const NOT_UNIT = {"시카고": ["에이모스 하트", "메리 선샤인"], "마하고니": ["코러스"]};  // 마하고니 코러스 칸 = 그 회차 코러스 여러 명('김한결, 마이삭'), recommend.py NOT_UNIT 과 같게
+// 보여주기만 하는 배역(2026-11-17 사용자 선택): 한 칸에 그 회차 배우 여러 명('김한결, 마이삭'). 조합·고르기에는 안 쓰고 배우 먼저 화면·조합 카드에 명단과 영상만 보인다
+const SHOW_ONLY = {"마하고니": ["코러스"]};
+const showOnlyRoles = (D, work) => ((D.roles || {})[work] || []).filter(r => (SHOW_ONLY[work] || []).includes(r.role));
 const unitRoles = (D, work) => ((D.roles || {})[work] || []).filter(r => !(NOT_UNIT[work] || []).includes(r.role));
 const isUnit = (D, work, role) => unitRoles(D, work).some(r => r.role === role);
 const unitCast = (D, work, cast) => unitRoles(D, work).filter(r => cast[r.role]).map(r => [r.role, cast[r.role]]);  // [배역, 배우] roles.tsv 순서
@@ -3042,7 +3045,9 @@ const actorFirst = (w, step) => {
   const roles = unitRoles(D, work).map(r => `<div class="rolebox"><div class="rolehead"><b>${esc(r.role)}</b></div><div class="acgrid">${r.cast.map(a => { const s = state(a), off = !left(a), on = s === "must" || s === "maybe";
     const label = `${esc(a)}${s === "must" ? ", 반드시 포함" : s === "maybe" ? ", 가능하면 포함" : ""}. 누를 때마다 가능하면 포함, 반드시 포함, 취소 순으로 바뀌어요`;
     return `<div class="accell"><button class="chip acname ${on ? `on ${s}` : ""}" data-act="acCycle" data-work="${W}" data-a="${esc(a)}"${off || s === "avoid" ? " disabled" : ""} aria-label="${label}">${on ? `<span class="acic" aria-hidden="true">${AC_ICON[s]}</span>` : ""}${esc(a)}${s === "avoid" ? " · 피함" : off ? " · 남은 회차 없음" : ""}</button>
-      ${acVideo(work, r.role, a)}</div>`; }).join("")}</div></div>`).join("");
+      ${acVideo(work, r.role, a)}</div>`; }).join("")}</div></div>`).join("")
+    + showOnlyRoles(D, work).map(r => `<div class="rolebox"><div class="rolehead"><b>${esc(r.role)}</b> <span class="tiny muted">회차마다 바뀌어서 고를 수는 없어요</span></div><div class="acgrid">${r.cast.map(a => `<div class="accell"><span class="chip acname">${esc(a)}</span>
+      ${acVideo(work, r.role, a)}</div>`).join("")}</div></div>`).join("");
   const clashLine = !clash ? "" : `<div class="card pinask"><p class="small">${clash.kind === "role" ? `${esc(clash.a)}${wagwa(clash.a)} ${esc(clash.b)}${eun(clash.b)} 같은 배역이라 한 회차에 함께 나오지 않아요` : `${esc(clash.a)}${wagwa(clash.a)} ${esc(clash.b)}${iga(clash.b)} 함께 나오는 회차가 없어요`}</p><button class="chip" data-act="acSet" data-work="${W}" data-a="${esc(clash.b)}" data-k="maybe">${esc(clash.b)}${eul(clash.b)} 가능하면 포함으로 바꾸기</button></div>`;
   return `<div class="one sv"><div class="achead"><div><p class="eyebrow">${W} · 배우 먼저</p><h1>누구를 꼭 보고 싶어요?</h1></div>
       <p class="aclegend"><span><b class="acic">✓</b> 가능하면 포함</span><span><b class="acic">★</b> 반드시 포함</span><span class="muted">한 번 더 누르면 취소</span></p></div>
@@ -3196,12 +3201,13 @@ const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 �
     const [p0, ...rest] = ps, dt = p => `${md(p.date)}(${esc(p.dow)}) ${esc(p.time)}${groupShow(p) ? " 단관" : ""}`;
     return `<div class="rcwhen"><b class="rcd">${p0.date.slice(5, 7)}.${p0.date.slice(8)} <span>(${esc(p0.dow)})</span> ${esc(p0.time)}</b>${groupBadge(p0)}
       ${rest.length ? `<span class="rcmore">${rest.slice(0, 3).map(dt).join(" · ")}${rest.length > 3 ? ` 외 ${rest.length - 3}회` : ""}</span>` : ""}</div>`; };
+  const showOnlyLine = key => { const p0 = perfsOfKey(key)[0]; return p0 ? showOnlyRoles(D, work).filter(r => p0.cast[r.role]).map(r => `<p class="tiny muted"><b>${esc(r.role)}</b> ${esc(p0.cast[r.role])} <span>(가장 가까운 회차, 회차마다 달라요)</span></p>`).join("") : ""; };
   const sameCast = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
   const card = (c, i) => { const e = sat[c.key], on = nav ? pk === c.key && sameCast(c.cast, sel) : sameCast(c.cast, sel), names = Object.values(c.cast), rec = recBy.get(c.key);  // 1·2순위 비교 문구(rankNote)는 화면에 안 보인다(사용자 요청 2026-11-03 저녁)  // 배우·날짜 먼저 화면은 처음엔 아무것도 안 골라져 있다(눌러야 on)
     const why = e?.a !== "dislike" ? "" : `<p class="tiny muted">누구 때문인가요? <span>(선택)</span></p><div class="chips">${names.map(a => `<button type="button" class="chip x ${e.actor === a ? "on" : ""}" data-act="satWhy" data-work="${W}"${DD} data-i="${i}" data-who="${esc(a)}" aria-pressed="${e.actor === a}">${esc(a)}</button>`).join("")}${SAT_WHY.map(([k, l]) => `<button type="button" class="chip x ${e.why === k ? "on" : ""}" data-act="satWhy" data-work="${W}"${DD} data-i="${i}" data-k="${k}" aria-pressed="${e.why === k}">${esc(l)}</button>`).join("")}</div>
       ${e.actor && !e.ask ? `<div class="pinask"><p class="small">${esc(e.actor)} 배우를 피하고 싶은 배우에 추가할까요? <span class="muted">이 작품에서만 빠져요.</span></p><div class="nbgrid"><button class="nb" data-act="satAvoid" data-work="${W}"${DD} data-i="${i}" data-y="1">추가</button><button class="nb" data-act="satAvoid" data-work="${W}"${DD} data-i="${i}" data-y="0">아니요</button></div></div>`
         : e.actor && e.ask === "yes" ? `<p class="tiny muted">${esc(e.actor)} 배우를 이 작품에서 뺐어요.</p>` : ""}`;
-    return `<div class="card rcard">${whenHead(c.key)}<div class="rctop">${satIcons(W, DD, i, e)}<span class="rcrank${i === 0 ? " r1" : ""}">${i + 1}순위</span></div><div class="rcast" style="--n:${names.length}">${Object.entries(c.cast).map(([r, a]) => `<div class="${["rca", kinds.has(a) ? "want" : "", (rec?.evByActor?.[a] || []).length ? "fit" : ""].filter(Boolean).join(" ")}" style="--m:${nameEm(a)}"><span>${roleBreak(r)}</span><b>${esc(a)}</b></div>`).join("")}</div><p class="tiny muted">${inDates ? "고른 날짜 중 " : "남은 "}회차 ${nPerf(c.key)}개</p>${whyLines(c)}
+    return `<div class="card rcard">${whenHead(c.key)}<div class="rctop">${satIcons(W, DD, i, e)}<span class="rcrank${i === 0 ? " r1" : ""}">${i + 1}순위</span></div><div class="rcast" style="--n:${names.length}">${Object.entries(c.cast).map(([r, a]) => `<div class="${["rca", kinds.has(a) ? "want" : "", (rec?.evByActor?.[a] || []).length ? "fit" : ""].filter(Boolean).join(" ")}" style="--m:${nameEm(a)}"><span>${roleBreak(r)}</span><b>${esc(a)}</b></div>`).join("")}</div>${showOnlyLine(c.key)}<p class="tiny muted">${inDates ? "고른 날짜 중 " : "남은 "}회차 ${nPerf(c.key)}개</p>${whyLines(c)}
       <button class="rcpick${nav ? " go" : ""} ${on ? "on" : ""}" data-act="selCombo" data-work="${W}"${DD}${nav ? ` data-nav="${nav === "rec" ? "rec" : 1}"` : ""} data-i="${i}" aria-pressed="${on}">${on ? (nav ? "고른 조합 · 날짜 보기" : "고른 조합") : nav ? "이 조합으로 날짜 보기" : "이 조합 고르기"}</button>
       ${e?.a === "like" ? `<div class="satbox"><p class="tiny muted">좋아한 조합으로 기억할게요. 이 배우들이 나오는 조합을 앞에 보여 드려요.</p></div>` : e?.a === "dislike" ? `<div class="satbox">${why}</div>` : ""}</div>`; };  // 답한 뒤에만 아래 칸(좋아요 안내 · 누구 때문인가요?)
   const more = sh.again ? `<p class="tiny muted">다시 추천은 한 번만 할 수 있어요</p>`
