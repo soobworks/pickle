@@ -1,0 +1,121 @@
+{
+ "taste": [
+  {
+   "src": "taste_1.webp",
+   "tap": {
+    "x": 16.9,
+    "y": 49.2
+   }
+  },
+  {
+   "src": "taste_2.webp",
+   "tap": {
+    "x": 22.4,
+    "y": 50
+   }
+  },
+  {
+   "src": "taste_3.webp",
+   "tap": {
+    "x": 50,
+    "y": 77.2
+   }
+  },
+  {
+   "src": "taste_4.webp"
+  },
+  {
+   "src": "taste_5.webp"
+  }
+ ],
+ "filter": [
+  {
+   "src": "filter_1.webp",
+   "tap": {
+    "x": 66.2,
+    "y": 29.8
+   }
+  },
+  {
+   "src": "filter_2.webp",
+   "tap": {
+    "x": 44.1,
+    "y": 29.8
+   }
+  },
+  {
+   "src": "filter_3.webp"
+  },
+  {
+   "src": "filter_4.webp",
+   "tap": {
+    "x": 50,
+    "y": 77.9
+   }
+  },
+  {
+   "src": "filter_5.webp",
+   "tap": {
+    "x": 29.1,
+    "y": 82
+   }
+  },
+  {
+   "src": "filter_6.webp"
+  }
+ ],
+ "log": [
+  {
+   "src": "log_1.webp",
+   "tap": {
+    "x": 10.8,
+    "y": 52.7
+   }
+  },
+  {
+   "src": "log_2.webp",
+   "tap": {
+    "x": 29.1,
+    "y": 37.8
+   }
+  },
+  {
+   "src": "log_3.webp",
+   "tap": {
+    "x": 18.7,
+    "y": 49.9
+   }
+  },
+  {
+   "src": "log_4.webp",
+   "tap": {
+    "x": 24.6,
+    "y": 50
+   }
+  },
+  {
+   "src": "log_5.webp",
+   "tap": {
+    "x": 26.7,
+    "y": 84.1
+   }
+  },
+  {
+   "src": "log_6.webp",
+   "tap": {
+    "x": 34.5,
+    "y": 46.4
+   }
+  },
+  {
+   "src": "log_7.webp",
+   "tap": {
+    "x": 29.1,
+    "y": 52.3
+   }
+  },
+  {
+   "src": "log_8.webp"
+  }
+ ]
+}

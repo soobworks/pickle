@@ -571,9 +571,10 @@ a.wcard:hover{border-color:var(--hl)}
 </div>
 <div id="dbg"></div>
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
+<div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611182311"></script>
+<script src="data.js?v=202611182315"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1593,7 +1594,7 @@ const pullOldCard = () => canPullHere() ? `<div class="card"><h3>예전 기록 �
   <button class="btn ghost" data-act="pullOld">예전 기록 가져오기</button></div>` : "";
 V.me = step => {
   const rows = exportRows(), open = step === "1" || step === "2";
-  return `<div class="one">${SURVEY_BANNER}${tasteSum(S.prefs || {}, open, "#me/1", "#me")}${open ? onboardBody(step, false, "", "#me") : ""}
+  return `<div class="one">${SURVEY_BANNER}${open ? "" : `<button type="button" class="btn ghost introbtn" data-act="introOpen">서비스 소개 보기</button>`}${tasteSum(S.prefs || {}, open, "#me/1", "#me")}${open ? onboardBody(step, false, "", "#me") : ""}
     ${open ? "" : accountCard()}
     ${open ? "" : pullOldCard()}
     ${rows.length && debugOn() ? `<div class="card"><h3>팀 시트로 내보내기</h3><p class="small muted">'태그 기록' 탭 맨 아래에 붙여 넣는 TSV ${rows.length}줄이에요.</p><button class="btn ghost" data-act="copyTsv">TSV 복사</button><pre>${esc(rows.map(r => r.join("\t")).join("\n"))}</pre></div>` : ""}
@@ -2674,7 +2675,7 @@ const debugOn = () => /[?&]debug=1/.test(location.search);  // 점검용(📝 �
 const privacyLink = () => trackUi() ? ` · <a href="#privacy">기록·개인정보 안내</a>` : "";
 // 화면 맨 위 기록 안내 박스는 모든 화면에서 뺐다(사용자 요청 2026-11-03). 기록·개인정보 안내(#privacy, 기록 끄기·지우기)는 홈 맨 아래 링크로 간다
 // 취향 설문 화면 맨 위 안내(사용자 요청 2026-11-03): 강조색 박스에 흰 글씨
-const SURVEY_BANNER = `<p class="obbanner">입력하면 취향에 맞는 캐스팅 조합을 추천받을 수 있어요</p>`;
+const SURVEY_BANNER = `<p class="obbanner">입력하면 취향에 맞는 캐스팅 조합을<br class="mbr"> 추천받을 수 있어요</p>`;  // 모바일은 '추천받을 수 있어요' 앞에서 줄바꿈(2026-11-18)
 function renderDebug() {
   const el = $("#dbg"); if (!el) return;
   if (TRK.live() || !debugOn()) { el.innerHTML = ""; return; }  // 연습 모드이면서 ?debug=1 일 때만
@@ -3385,6 +3386,74 @@ V.duel = key => { const ref = showRef(D, key);
 const duelMeCard = () => { const ws = D.works.filter(w => w.hasSchedule && duelStatus(D, S, w.name, today()).some(x => x.total > 0));
   return !ws.length ? "" : `<div class="card"><h3>끌리는 배우 고르기 <span class="small muted">선택</span></h3><p class="small muted">같은 배역의 두 배우 중 끌리는 쪽을 골라요. 고른 결과가 그 작품의 추천 조합에 바로 반영돼요.</p><div class="chips">${ws.map(w => `<button class="chip" data-go="#duel/${esc(w.name)}">${esc(w.name)}${duelDone(S, w.name) ? ` · ${duelDone(S, w.name)}판` : ""}</button>`).join("")}</div></div>`; };
 
+// ---------- 서비스 소개(인트로) 팝업(사용자 요청 2026-11-18) ----------
+// 처음 온 사람(취향·티켓이 없고 인트로를 본 적 없는 기기)에게 앱 위에 한 번 띄운다. 오른쪽 위 ✕ 로 언제든 닫고, 닫으면 다시 안 뜬다('내 취향'의 [서비스 소개 보기]로 다시 연다).
+// 모바일은 위아래 스크롤, 넓은 화면(900px~)은 옆으로 넘기기. 장면마다 실제 앱 캡처(tools/intro/capture.js 가 만든 app/img/intro/)가 손가락 표시와 함께 자동으로 넘어간다
+const INTRO_KEY = "pickle_intro";
+const INTRO = [
+  {k: "taste", tag: "취향 맞춤 추천", h: "취향 카드 한 장이면<br>딱 맞는 캐스팅 조합이 나와요", p: "좋아하는 배우와 공연에서 기대하는 점을 고르면, 배역 전체가 어울리는 조합을 골라 드려요."},
+  {k: "filter", tag: "빠른 회차 고르기", h: "보고 싶은 배우, 피하고 싶은 배우만<br>누르면 회차가 바로 좁혀져요", p: "고른 조합이 나오는 날만 달력에 남아요. 마음에 드는 날은 내 티켓에 담아 두세요."},
+  {k: "log", tag: "관극 기록", h: "본 공연을 기록하면<br>좋았던 배우가 취향 카드에 쌓여요", p: "조합과 배우마다 남긴 기록에서 좋았던 배우를 골라 넣으면, 다음 추천에 반영돼요."},
+];
+const introSeen = () => { try { return !!localStorage.getItem(INTRO_KEY); } catch (e) { return true; } };
+const introDue = (S, seen) => !seen && !hasTaste(S.prefs) && !(S.plans || []).length;  // 처음 온 사람만(이미 쓰던 사람에게는 자동으로 띄우지 않는다)
+const INTRO_X = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+const introHTML = () => `<div class="inbox"><button type="button" class="inx" data-act="introClose" aria-label="서비스 소개 닫기">${INTRO_X}</button>
+  <div class="inhead"><p class="eyebrow">PICKLE 서비스 소개</p><h2 id="introtitle">누구 캐스트로 볼지,<br>PICKLE이 같이 골라 드려요</h2></div>
+  <div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
+  <div class="innav"><button type="button" class="inarrow" data-act="introGo" data-d="-1" aria-label="이전 소개">‹</button><div class="indots">${INTRO.map((x, i) => `<button type="button" class="indot${i ? "" : " on"}" data-act="introGo" data-to="${i}" aria-label="${i + 1}번째 소개: ${x.tag}"></button>`).join("")}</div><button type="button" class="inarrow" data-act="introGo" data-d="1" aria-label="다음 소개">›</button></div>
+  <div class="inend"><button type="button" class="btn" data-act="introClose">지금 내 조합 찾기</button></div></div>`;
+let INTRO_FRAMES = null, INTRO_IO = null;
+const introPlayers = new Map();  // 휴대폰 화면마다 자동 재생 상태
+const reduceMotion = () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+function introPlayer(ph) {  // 캡처를 한 장씩 보여 주고, 누르는 곳이 있으면 손가락 표시를 띄운 뒤 다음 장으로. 끝까지 가면 처음부터
+  const list = INTRO_FRAMES?.[ph.dataset.k] || [], scr = ph.querySelector(".inscreen"), tap = ph.querySelector(".intap");
+  if (!list.length || !scr) return null;
+  scr.innerHTML = list.map((f, i) => `<img src="img/intro/${esc(f.src)}" alt="" ${i ? `loading="lazy" ` : ""}class="${i ? "" : "on"}" draggable="false">`).join("");
+  const imgs = [...scr.querySelectorAll("img")];
+  if (reduceMotion()) { imgs.forEach((im, i) => im.classList.toggle("on", i === imgs.length - 1)); return {play() {}, stop() {}}; }  // 움직임 줄이기: 마지막(결과) 화면만
+  let i = 0, t = null, on = false;
+  const show = n => { imgs.forEach((im, j) => { im.classList.toggle("on", j === n); im.classList.toggle("past", j < n); }); i = n; };
+  const step = () => {
+    if (!on) return; const f = list[i];
+    if (f.tap) { tap.style.left = f.tap.x + "%"; tap.style.top = f.tap.y + "%"; tap.classList.add("show"); t = setTimeout(() => { tap.classList.add("go"); t = setTimeout(() => { tap.classList.remove("go", "show"); show(i + 1); t = setTimeout(step, 1300); }, 650); }, 900); }
+    else if (i < list.length - 1) t = setTimeout(() => { show(i + 1); t = setTimeout(step, 1300); }, 1500);
+    else t = setTimeout(() => { show(0); t = setTimeout(step, 1300); }, 2600);  // 마지막(결과) 화면은 조금 더 보여 주고 처음부터
+  };
+  return {play() { if (on) return; on = true; t = setTimeout(step, 600); }, stop() { on = false; clearTimeout(t); tap.classList.remove("go", "show"); }};
+}
+function introStart() {
+  const box = $("#intro"); if (!box || box.hidden) return;
+  box.querySelectorAll(".inphone").forEach(ph => { if (!introPlayers.has(ph)) { const p = introPlayer(ph); if (p) introPlayers.set(ph, p); } });
+  if (typeof IntersectionObserver === "undefined") { introPlayers.forEach(p => p.play()); return; }
+  INTRO_IO?.disconnect();
+  INTRO_IO = new IntersectionObserver(es => es.forEach(e => { const p = introPlayers.get(e.target); if (p) e.isIntersecting ? p.play() : p.stop(); }), {root: box.querySelector(".inbox"), threshold: 0.6});  // 보이는 장면만 움직인다(옆으로 넘기면 지금 장면만)
+  introPlayers.forEach((p, ph) => INTRO_IO.observe(ph));
+}
+function openIntro() {
+  const box = $("#intro"); if (!box) return;
+  box.innerHTML = introHTML(); box.hidden = false; introPlayers.clear();
+  document.documentElement.classList.add("lock");
+  box.querySelector(".inx")?.focus?.({preventScroll: true});
+  box.querySelector("#intrack")?.addEventListener?.("scroll", introDots, {passive: true});
+  if (INTRO_FRAMES) introStart();
+  else if (typeof fetch === "function") fetch("img/intro/frames.json").then(r => r.ok ? r.json() : null).then(j => { INTRO_FRAMES = j || {}; introStart(); }).catch(() => {});  // 캡처가 없어도 글은 그대로 보인다
+}
+function closeIntro() {
+  const box = $("#intro"); if (!box || box.hidden) return;
+  introPlayers.forEach(p => p.stop()); introPlayers.clear(); INTRO_IO?.disconnect();
+  box.hidden = true; box.innerHTML = ""; if (!SHEET) document.documentElement.classList.remove("lock");
+  try { localStorage.setItem(INTRO_KEY, today()); } catch (e) { /* 저장이 막힌 브라우저: 이번만 닫힌다 */ }
+}
+function introDots() {  // 넓은 화면: 옆으로 넘긴 위치에 맞춰 점 표시
+  const tr = $("#intrack"); if (!tr || !tr.clientWidth) return; const n = Math.round(tr.scrollLeft / tr.clientWidth);
+  document.querySelectorAll("#intro .indot").forEach((d, i) => { d.classList.toggle("on", i === n); d.setAttribute("aria-current", i === n ? "true" : "false"); });
+}
+function introGo(d) {
+  const tr = $("#intrack"); if (!tr) return; const w = tr.clientWidth || 1, cur = Math.round(tr.scrollLeft / w);
+  const n = d.to != null ? +d.to : Math.max(0, Math.min(INTRO.length - 1, cur + +d.d));
+  tr.scrollTo({left: n * w, behavior: reduceMotion() ? "auto" : "smooth"});
+}
 // ---------- proto: 작은 시트(볼 예정 담기·예매처로를 누르면 '이 조합, 얼마나 기대돼요?' · 두 배우 비교) ----------
 const refresh = () => SHEET ? renderSheet() : route();
 const SHEET_X = `<button type="button" class="sx" data-act="closeSheet" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
@@ -3729,6 +3798,9 @@ document.addEventListener("click", e => {
     case "clearDates": { const st = S.cal[d.work || work]; st.dates = []; if (S.query?.work === (d.work || work)) S.query.dates = []; save(); route(); break; }
     case "toSide": $("#view .side").scrollIntoView(); break;
     case "closeSheet": closeSheet(); break;
+    case "introOpen": openIntro(); break;  // '내 취향'의 [서비스 소개 보기]
+    case "introClose": closeIntro(); break;
+    case "introGo": introGo(d); break;
     case "kakaoOpen": {  // 카카오톡 → 외부 브라우저로 지금 화면 열기. 동기화가 켜져 있으면 기록도 같이(일회용 번호, 4초 안에 못 만들면 기록 없이 연다)
       const next = /^(link|signIn):(google|kakao)$/.test(d.next || "") ? d.next : "", open = code => { location.href = kakaoOut(code, next); };
       if (SHEET) closeSheet();
@@ -3836,6 +3908,13 @@ document.addEventListener("change", e => { const el = e.target.closest?.('select
   const l = likeGet(el.dataset.a), r = l.roles[+el.dataset.ri]; if (!r) return; r.work = el.value;
   const roles = actorCredits(el.dataset.a).find(c => c.work === r.work)?.roles || []; r.role = roles.length === 1 ? roles[0] : roles.includes(r.role) ? r.role : "";
   likeOpen.add(el.dataset.a); save(); route(); });
+document.addEventListener("keydown", e => {  // 인트로가 열려 있을 때: Esc 로 닫고, Tab 은 인트로 안에서만 돈다
+  const box = $("#intro"); if (!box || box.hidden) return;
+  if (e.key === "Escape") { e.preventDefault(); closeIntro(); return; }
+  if (e.key !== "Tab") return;
+  const f = [...box.querySelectorAll("button:not([disabled])")], on = document.activeElement;
+  if (f.length && e.shiftKey && on === f[0]) { e.preventDefault(); f[f.length - 1].focus(); } else if (f.length && !e.shiftKey && on === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
 document.addEventListener("keydown", e => {  // 시트(모달)가 열려 있을 때: Esc 로 닫고, Tab 은 시트 안에서만 돈다
   if (!SHEET) return;
   if (e.key === "Escape") { e.preventDefault(); closeSheet(); return; }
@@ -3897,6 +3976,7 @@ const kakaoBar = () => { const el = document.querySelector("#kakaobar"); if (!el
   el.innerHTML = `<span>카카오톡에서는 카드 공유·저장 같은 일부 기능이 잘 안 돼요</span><button type="button" class="kbtn" data-act="kakaoOpen">외부 브라우저로 열기</button><button type="button" class="kx" data-act="kakaoHide" aria-label="안내 닫기">✕</button>`; };
 kakaoBar();
 route();
+if (!MOVING && !SEARCH_BOT && introDue(S, introSeen())) openIntro();  // 처음 온 사람에게 한 번
 if (NOTICE_SEEN && !MOVING) { backfillReviews(); syncTickets(); }
 if (PULL_DONE_MSG) toast(PULL_DONE_MSG);
 // 주소 이사로 데이터를 받아도 알림은 띄우지 않는다(사용자 요청 2026-11-08: 거쳐 가는 느낌을 줄이기). 받은 데이터는 그대로 보인다

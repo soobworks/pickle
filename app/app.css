@@ -300,6 +300,9 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .card.prvno{border:1.5px solid var(--fg)}
 .prvno ul{margin:0;padding-left:1.2em;display:grid;gap:6px}
 .prvno li{font-size:15px;font-weight:600;line-height:1.45}
+.mbr{display:none}
+@media (max-width:599px){.mbr{display:inline}}
+.introbtn{justify-self:start}
 .obbanner{margin:0;padding:14px 16px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:700;line-height:1.45;text-align:center;word-break:keep-all}
 /* 로고 옆 X 계정 링크(결정 84): 로고 링크 밖에 따로 두고, 로고보다 눈에 덜 띄게 muted. @pickle_musical 은 줄바꿈 없이 전부 보인다 */
 .top .brand{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}
@@ -764,3 +767,53 @@ button,.btn,.chip,.nb{text-align:center}
 @media (max-width:599px){.morebtns{grid-template-columns:1fr}}
 /* 작품 취향 수정 화면의 '평소 취향이에요…' 안내 */
 .wtnote{margin:0;color:#fff;font-weight:800;font-size:16px;line-height:1.5;word-break:keep-all}
+
+/* 서비스 소개(인트로) 팝업(2026-11-18): 처음 온 사람에게 앱 위에 한 번. 모바일은 꽉 찬 화면에서 위아래 스크롤, 넓은 화면(900px~)은 가운데 상자에서 옆으로 넘기기.
+   휴대폰 틀 안의 실제 앱 캡처가 손가락 표시(.intap)와 함께 넘어간다. 움직임 줄이기 설정이면 마지막 화면만 */
+.intro{position:fixed;inset:0;z-index:100;background:rgba(6,8,11,.72);display:grid;place-items:center}
+.intro[hidden]{display:none}
+.inbox{position:relative;width:100%;height:100%;overflow-y:auto;overscroll-behavior:contain;background:var(--bg);padding:60px 20px max(28px,env(safe-area-inset-bottom));animation:infade .3s ease}
+@keyframes infade{from{opacity:0}to{opacity:1}}
+.inx{position:fixed;top:12px;right:12px;z-index:2;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--soft);color:var(--fg);cursor:pointer;padding:0}
+.inx svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.inx:focus-visible,.inarrow:focus-visible,.indot:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.inhead .eyebrow{margin:0;font-size:12px}
+.inhead h2{margin:8px 0 0;font-size:25px;line-height:1.35;word-break:keep-all}
+.intrack{display:grid;gap:52px;margin-top:32px}
+.inslide{display:grid;gap:20px;min-width:0}
+.inno{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.inno b{display:inline-grid;place-items:center;min-width:30px;height:22px;padding:0 6px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:12px}
+.inslide h3{margin:10px 0 8px;font-size:21px;line-height:1.4;word-break:keep-all}
+.insub{margin:0;color:var(--muted);font-size:14.5px;line-height:1.6;word-break:keep-all}
+.inphone{position:relative;justify-self:center;width:min(72vw,280px);aspect-ratio:390/844;border-radius:32px;border:7px solid #2A3038;background:#0B0E12;overflow:hidden}
+.inscreen,.inscreen img{position:absolute;inset:0}
+.inscreen img{width:100%;height:100%;object-fit:cover;opacity:0;transform:translateX(16%);transition:opacity .45s ease,transform .45s ease;user-select:none}
+.inscreen img.on{opacity:1;transform:none}
+.inscreen img.past{transform:translateX(-16%)}
+.intap{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:rgba(255,255,255,.32);border:2px solid rgba(255,255,255,.92);opacity:0;transform:scale(1.5);transition:opacity .25s ease,transform .25s ease;pointer-events:none}
+.intap.show{opacity:1;transform:scale(1)}
+.intap::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid rgba(255,255,255,.8);opacity:0}
+.intap.go{transform:scale(.8)}
+.intap.go::after{animation:inring .6s ease-out}
+@keyframes inring{from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(2)}}
+.innav{display:none}
+.inend{display:grid;margin-top:40px}
+.inend .btn{min-height:52px;font-size:16px}
+@media (min-width:900px){
+  .inbox{width:min(1040px,calc(100% - 48px));height:auto;max-height:calc(100vh - 40px);overflow:hidden;display:grid;gap:12px;padding:28px 48px 22px;border:1px solid var(--line);border-radius:24px}
+  .inx{position:absolute;top:18px;right:18px}
+  .inhead h2{font-size:24px}
+  .intrack{display:flex;gap:0;margin-top:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .intrack::-webkit-scrollbar{display:none}
+  .inslide{flex:0 0 100%;scroll-snap-align:start;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:56px;padding:4px 0}
+  .inslide h3{font-size:30px}
+  .insub{font-size:16px}
+  .inphone{width:auto;height:min(520px,calc(100vh - 350px))}
+  .innav{display:flex;justify-content:center;align-items:center;gap:18px}
+  .inarrow{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:22px;line-height:1;cursor:pointer}
+  .indots{display:flex;gap:8px}
+  .indot{width:8px;height:8px;padding:0;border:0;border-radius:999px;background:var(--dash);cursor:pointer;transition:width .25s ease}
+  .indot.on{width:24px;background:var(--fg)}
+  .inend{justify-self:center;width:280px;margin-top:0}
+}
+@media (prefers-reduced-motion:reduce){.inbox{animation:none}.inscreen img{transition:none}}
