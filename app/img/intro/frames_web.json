@@ -1,0 +1,107 @@
+{
+ "taste": [
+  {
+   "src": "w_taste_1.webp",
+   "tap": {
+    "x": 22.5,
+    "y": 47.8
+   }
+  },
+  {
+   "src": "w_taste_2.webp",
+   "tap": {
+    "x": 24.2,
+    "y": 50
+   }
+  },
+  {
+   "src": "w_taste_3.webp",
+   "tap": {
+    "x": 50,
+    "y": 81.7
+   }
+  },
+  {
+   "src": "w_taste_4.webp"
+  },
+  {
+   "src": "w_taste_5.webp"
+  }
+ ],
+ "filter": [
+  {
+   "src": "w_filter_1.webp",
+   "tap": {
+    "x": 48.4,
+    "y": 34.5
+   }
+  },
+  {
+   "src": "w_filter_2.webp",
+   "tap": {
+    "x": 38.6,
+    "y": 34.5
+   }
+  },
+  {
+   "src": "w_filter_3.webp"
+  },
+  {
+   "src": "w_filter_4.webp",
+   "tap": {
+    "x": 50,
+    "y": 63
+   }
+  },
+  {
+   "src": "w_filter_5.webp",
+   "tap": {
+    "x": 35.7,
+    "y": 86.8
+   }
+  },
+  {
+   "src": "w_filter_6.webp"
+  }
+ ],
+ "log": [
+  {
+   "src": "w_log_1.webp",
+   "tap": {
+    "x": 32.8,
+    "y": 68.3
+   }
+  },
+  {
+   "src": "w_log_2.webp",
+   "tap": {
+    "x": 36.7,
+    "y": 49.9
+   }
+  },
+  {
+   "src": "w_log_3.webp",
+   "tap": {
+    "x": 50,
+    "y": 37.8
+   }
+  },
+  {
+   "src": "w_log_4.webp",
+   "tap": {
+    "x": 34.1,
+    "y": 40.2
+   }
+  },
+  {
+   "src": "w_log_5.webp",
+   "tap": {
+    "x": 21.5,
+    "y": 50
+   }
+  },
+  {
+   "src": "w_log_6.webp"
+  }
+ ]
+}
