@@ -816,7 +816,7 @@ button,.btn,.chip,.nb{text-align:center}
   .insub{font-size:14px}
   .inphone{width:auto;height:min(520px,calc(100vh - 350px))}
   .inphone.web{justify-self:end;width:100%;height:auto;max-height:calc(100vh - 160px);aspect-ratio:900/800;border-width:6px;border-radius:14px}  /* 넓은 화면 캡처(900×800, 양옆 여백 없이 꽉 차게)는 웹 화면 틀 */
-  .inphone.web .intap{width:34px;height:34px;margin:-17px 0 0 -17px}
+  .inphone.web .intap{display:none}  /* 넓은 화면은 누르는 동그라미 없이 화면만 넘어간다(위치가 어긋나 보여서 뺌, 사용자 요청 2026-11-19) */
   /* 넘기기 버튼은 장면 양끝(2026-11-19): 첫 장면은 예시 화면 오른쪽에 → 만, 마지막은 글 왼쪽에 ← 만, 가운데는 둘 다. 하단은 [내 취향의 조합 찾기]만 */
   .inarrow{display:grid;place-items:center;position:absolute;top:50%;z-index:1;width:40px;height:40px;margin-top:-20px;padding:0 0 2px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:22px;line-height:1;cursor:pointer}
   .inarrow[data-d="-1"]{left:-52px}
