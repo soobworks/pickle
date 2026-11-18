@@ -68,54 +68,40 @@
   {
    "src": "log_1.webp",
    "tap": {
-    "x": 10.8,
+    "x": 36.9,
     "y": 52.7
    }
   },
   {
    "src": "log_2.webp",
    "tap": {
+    "x": 50,
+    "y": 44.6
+   }
+  },
+  {
+   "src": "log_3.webp",
+   "tap": {
+    "x": 50,
+    "y": 34.2
+   }
+  },
+  {
+   "src": "log_4.webp",
+   "tap": {
     "x": 29.1,
     "y": 37.8
    }
   },
   {
-   "src": "log_3.webp",
+   "src": "log_5.webp",
    "tap": {
     "x": 18.7,
     "y": 49.9
    }
   },
   {
-   "src": "log_4.webp",
-   "tap": {
-    "x": 24.6,
-    "y": 50
-   }
-  },
-  {
-   "src": "log_5.webp",
-   "tap": {
-    "x": 26.7,
-    "y": 84.1
-   }
-  },
-  {
-   "src": "log_6.webp",
-   "tap": {
-    "x": 34.5,
-    "y": 46.4
-   }
-  },
-  {
-   "src": "log_7.webp",
-   "tap": {
-    "x": 29.1,
-    "y": 52.3
-   }
-  },
-  {
-   "src": "log_8.webp"
+   "src": "log_6.webp"
   }
  ]
 }
