@@ -65,6 +65,7 @@ a{color:inherit}
 .card.accent{border-color:var(--hl)}
 .card.picked{border-top:2px solid var(--hl)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
+.gsi{min-height:44px;display:flex;align-items:center}
 .chips:has(> .pair){display:grid;gap:6px}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .pair .chip{justify-content:center;text-align:center;min-width:0}
@@ -571,7 +572,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611182231"></script>
+<script src="data.js?v=202611182259"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1544,20 +1545,47 @@ let ACC_ASK = "", ACC_MSG = "";  // ACC_MSG: 로그인 다녀온 결과("elsewhe
 const LOGIN_NAMES = {google: "구글", kakao: "카카오"};
 const accountCard = () => {
   if (!SYNC) return "";
-  const st = SYNC.status(), login = SYNC_CFG.login, nm = p => LOGIN_NAMES[p] || p;
+  const st = SYNC.status(), login = SYNC_CFG.login, nm = p => LOGIN_NAMES[p] || p, gsi = gsiOn(), others = gsi ? login.filter(p => p !== "google") : login;  // gsi: 구글은 공식 버튼 하나로 연결·불러오기
   const line = {loading: "불러오는 중이에요…", saving: "저장하는 중이에요…", ok: "이 기기와 서버에 저장돼 있어요.", offline: "인터넷에 연결되면 서버에 저장해요. 이 기기에는 저장돼 있어요.", error: "서버에 저장하지 못했어요. 이 기기에는 저장돼 있고, 다음에 열 때 다시 시도해요."}[st.state] || "";
   const ep = ACC_MSG.startsWith("elsewhere:") ? ACC_MSG.slice(10) : "";
   const msg = ep ? `<div class="ask"><p class="small"><b>이 ${nm(ep)} 계정은 이미 다른 PICKLE 기록과 연결돼 있어요.</b> 그 계정으로 불러오면 이 기기에 있는 기록도 합쳐져요.</p><div class="nbgrid"><button class="nb" data-act="accSignIn" data-p="${esc(ep)}">${nm(ep)} 계정으로 불러오기</button><button class="nb" data-act="accMsg">닫기</button></div></div>`
     : ACC_MSG === "fail" ? `<p class="small muted">계정 연결을 마치지 못했어요. 다시 해 주세요. <button class="chip x" data-act="accMsg">닫기</button></p>` : "";
   const who = st.anon ? `<p class="small">${login.length ? "계정을 연결하면 브라우저를 지우거나 다른 기기에서도 이어서 쓸 수 있어요. 연결하지 않으면 이 브라우저에서만 찾을 수 있어요." : "이 브라우저에 연결돼 있어요. 브라우저 데이터를 지우면 되찾을 수 없어요."}</p>
-      ${login.length ? `<div class="chips">${login.map(p => `<button class="btn" data-act="accLink" data-p="${p}">${nm(p)} 계정 연결하기</button>`).join("")}</div>
-      <p class="tiny muted">이미 연결해 둔 계정이 있나요? ${login.map(p => `<button class="chip x" data-act="accSignIn" data-p="${p}">${nm(p)}로 불러오기</button>`).join(" ")}</p>` : ""}`
+      ${login.length ? `<div class="chips">${login.map(p => gsi && p === "google" ? `<div id="gsi" class="gsi"><button class="btn" data-act="accLink" data-p="google">구글 계정 연결하기</button></div>` : `<button class="btn" data-act="accLink" data-p="${p}">${nm(p)} 계정 연결하기</button>`).join("")}</div>
+      ${gsi ? `<p class="tiny muted">다른 기기에서 이미 연결한 구글 계정이면, 그 계정에서 불러와 이 기기 기록과 합쳐요.</p>` : ""}
+      ${others.length ? `<p class="tiny muted">이미 연결해 둔 계정이 있나요? ${others.map(p => `<button class="chip x" data-act="accSignIn" data-p="${p}">${nm(p)}로 불러오기</button>`).join(" ")}</p>` : ""}` : ""}`
     : `<p class="small">${esc(st.providers.map(nm).join("·") || "계정")} 계정${st.email ? ` (${esc(st.email)})` : ""}과 연결돼 있어요. 다른 기기에서 같은 계정으로 불러오면 이어서 쓸 수 있어요.</p>`;
   const ask = ACC_ASK === "delete" ? `<div class="ask"><p class="small"><b>내 데이터를 모두 지울까요?</b> 서버에 저장된 취향·티켓·리뷰와 보낸 기록, 연결한 계정 정보, 이 기기의 데이터까지 지워요. 되돌릴 수 없어요.</p><div class="nbgrid"><button class="nb" data-act="accDelete">모두 지우기</button><button class="nb" data-act="accAsk">그만두기</button></div></div>`
     : ACC_ASK === "signout" ? `<div class="ask"><p class="small"><b>로그아웃할까요?</b> 이 기기의 데이터는 지우고, 서버에 저장된 것은 그대로 둬요. 같은 계정으로 다시 불러올 수 있어요.</p><div class="nbgrid"><button class="nb" data-act="accSignOut">로그아웃</button><button class="nb" data-act="accAsk">그만두기</button></div></div>` : "";
   return `<div class="card" id="acct"><h3>내 데이터</h3><p class="tiny muted" role="status">${line}</p>${msg}${who}
     <div class="nbgrid">${st.anon ? "" : `<button class="nb" data-act="accAsk" data-k="signout">로그아웃</button>`}<button class="nb" data-act="accAsk" data-k="delete">내 데이터 모두 지우기</button></div>${ask}</div>`;
 };
+// 구글 공식 버튼(Google Identity Services, 2026-11-18 docs/261118_구글버튼.md): 구글 로그인 창에 Supabase 주소 대신 pickle-musical.com 이 뜬다.
+// 버튼이 준 토큰(ID token)을 Supabase 에 넘겨 연결과 불러오기를 버튼 하나로 한다(SYNC.googleToken). 페이지를 떠나지 않고 팝업에서 끝난다
+// 켜는 법: Actions 변수 GOOGLE_CLIENT_ID(Supabase Google provider 와 같은 웹 클라이언트 ID, 공개 값) → PICKLE_TRACK.gclient. 없거나 카톡 안 브라우저면 예전 방식(Supabase 로 다녀오기)
+// 구글 스크립트는 버전 고정 주소가 없어 무결성 해시를 달 수 없다(구글 공식 주소에서만, 익명 사용자가 내 취향 탭을 열 때만 받는다). 못 받으면 예전 [구글 계정 연결하기] 버튼이 그대로 남는다
+const GSI_SRC = "https://accounts.google.com/gsi/client";
+const gsiOn = () => !!(SYNC && SYNC_CFG && SYNC_CFG.gclient && SYNC_CFG.login.includes("google") && !IN_KAKAO && SYNC.status().anon);
+let GSI_P = null, GSI_NONCE = null, GSI_INIT = "";  // GSI_NONCE: Promise<{raw: Supabase 에 줄 값, hash: 구글에 줄 sha256}> — 토큰 한 번에 하나(쓰면 새로)
+const loadGsi = () => GSI_P ||= new Promise((ok, no) => { const g = () => window.google && window.google.accounts && window.google.accounts.id;
+  if (g()) return ok(g());
+  const el = document.createElement("script"); el.src = GSI_SRC; el.async = true;
+  el.onload = () => g() ? ok(g()) : no(new Error("gsi 없음")); el.onerror = () => { GSI_P = null; no(new Error("gsi 를 받지 못함")); };
+  document.head.appendChild(el); });
+const toHex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+const newNonce = async () => { const raw = toHex(crypto.getRandomValues(new Uint8Array(16))); return {raw, hash: toHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)))}; };
+const gsiDone = async (resp, n) => { GSI_NONCE = null;  // 쓴 번호는 버리고, 다음에 버튼을 그릴 때 새로
+  if (!SYNC || !n || !resp || !resp.credential) return;
+  try { const r = await SYNC.googleToken(resp.credential, n.raw); ACC_MSG = ""; toast(r === "signIn" ? "계정에서 불러왔어요. 이 기기 기록도 합쳤어요" : "계정을 연결했어요"); }
+  catch (e) { ACC_MSG = "fail"; }
+  if (CUR && CUR.name === "me") route(); };
+// 내 데이터 카드의 #gsi 자리에 구글 버튼을 그린다(카드를 다시 그릴 때마다). 실패하면 자리에 있던 예전 버튼이 남는다
+const mountGsi = async () => { if (!gsiOn()) return;
+  try { const id = await loadGsi(), n = await (GSI_NONCE ||= newNonce());  // 동시에 여러 번 불려도 번호는 하나
+    if (GSI_INIT !== n.hash) { id.initialize({client_id: SYNC_CFG.gclient, nonce: n.hash, callback: resp => gsiDone(resp, n), auto_select: false, context: "signin"}); GSI_INIT = n.hash; }
+    const el = document.querySelector("#gsi"); if (!el || el.isConnected === false || !gsiOn()) return;
+    el.innerHTML = ""; id.renderButton(el, {type: "standard", theme: "outline", size: "large", text: "continue_with", shape: "pill", locale: "ko", width: 260});
+  } catch (e) { console.warn("[gsi]", e); } };
 // '예전 기록 가져오기'(위 PULL_MANUAL): 홈은 이 브라우저에 기록이 아직 없고 [괜찮아요]를 안 눌렀을 때만, 내 취향 탭은 늘. 새 주소(pickle-musical.com)에서만 보인다
 const pullOff = () => { try { return !!localStorage.getItem(PULL_HINT_OFF); } catch (e) { return true; } };
 const pullOldCard = () => canPullHere() ? `<div class="card"><h3>예전 기록 가져오기</h3><p class="small muted">예전 주소(2ma1995.github.io·soobworks.github.io)에서 쓰던 기록이 있으면 이 브라우저로 가져와 지금 기록과 합쳐요. 지금 기록은 지워지지 않아요.</p>
@@ -2554,6 +2582,14 @@ function makeSync(env) {
     // in: 번호로 받은 기록을 이 브라우저 기록과 합친다(같은 칸은 받은 쪽 = 방금까지 카톡에서 쓰던 것). 번호가 없거나 지났으면 false
     async handoffIn(code) { if (!sb || !uid) return false; const r = await sb.rpc("take_handoff", {p_code: code}); if (r.error) throw r.error; if (!isObj(r.data)) return false;
       env.applyState(mergeState(syncPart(env.getState()), r.data)); setMeta({...meta(), uid, dirty: true}); await push(); return true; },
+    // 구글 공식 버튼 토큰으로(2026-11-18): 익명이면 이 기록에 구글을 붙이고, 이미 다른 기록에 붙은 계정이면 그 계정으로 들어간다(같은 토큰을 한 번 더 쓴다 → 구글 창은 한 번).
+    // 들어가면 onAuthStateChange → pull 이 이 기기 기록과 합친다(겹치는 칸은 계정 것). 그 전에 기다리던 저장(옛 익명 유저 기준)은 취소한다(계정 줄을 이 기기 것으로 덮지 않게)
+    async googleToken(token, nonce) { if (!sb || !uid) throw new Error("not ready");
+      if (anon) { const r = await sb.auth.linkIdentity({provider: "google", token, nonce});
+        if (!r.error) { if (r.data && r.data.session) setUser(r.data.session); changed(); return "link"; }
+        if (!(r.error.code === "identity_already_exists" || /already/i.test(r.error.message || ""))) throw r.error; }
+      if (pushT !== null) { env.clear(pushT); pushT = null; }
+      const r = await sb.auth.signInWithIdToken({provider: "google", token, nonce}); if (r.error) throw r.error; return "signIn"; },
     link: p => go("linkIdentity", p),  // 익명 계정에 구글·카카오를 붙인다(이 기기 기록 그대로)
     signIn: p => go("signInWithOAuth", p),  // 이미 연결해 둔 계정으로 들어간다(돌아오면 이 기기 기록과 합친다)
     async signOut() { await push(); await sb.auth.signOut({scope: "local"}); env.store.del(SYNC_META); },
@@ -2599,7 +2635,7 @@ const track = (event, props) => { const ok = TRK.track(event, props); if (ok) sc
 let flushT; const scheduleFlush = () => { if (!TRK.live()) return; clearTimeout(flushT); flushT = setTimeout(() => TRK.flush().then(r => { if (r?.sent && TRK.queue().length) scheduleFlush(); }), 3000); };  // 남은 묶음이 있으면 이어서(티켓 CSV 처럼 한 번에 많을 때)
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && TRK.live()) TRK.flush(); });
 // 내 데이터 동기화 켜기(docs/backend_plan_2026-11-06.md 1단계): 기록 설정이 켜져 있고 PICKLE_TRACK.sync 에 시행일이 있을 때만
-const SYNC_CFG = (() => { const t = window.PICKLE_TRACK || {}; return TRK.live() && /^\d{4}-\d{2}-\d{2}$/.test(t.sync || "") ? {since: t.sync, login: (Array.isArray(t.login) ? t.login : []).filter(p => ["google", "kakao"].includes(p))} : null; })();
+const SYNC_CFG = (() => { const t = window.PICKLE_TRACK || {}; return TRK.live() && /^\d{4}-\d{2}-\d{2}$/.test(t.sync || "") ? {since: t.sync, login: (Array.isArray(t.login) ? t.login : []).filter(p => ["google", "kakao"].includes(p)), gclient: /^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(t.gclient || "") ? t.gclient : ""} : null; })();
 const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "");
 const loadSbLib = () => new Promise((ok, no) => {  // supabase-js 는 동기화를 켰을 때만 받는다(버전 고정·무결성 해시)
   if (window.supabase && window.supabase.createClient) return ok(window.supabase);
@@ -2622,7 +2658,7 @@ if (SYNC_CFG) {
     timer: (f, ms) => setTimeout(f, ms), clear: t => clearTimeout(t),
     redirectTo: () => location.origin + location.pathname,
     online: () => typeof navigator === "undefined" || navigator.onLine !== false,
-    changed: () => { const el = CUR && CUR.name === "me" ? document.querySelector("#acct") : null; if (el && el.isConnected !== false) el.outerHTML = accountCard(); },  // 내 데이터 카드만 다시 그린다(열린 시트·입력 칸은 그대로)
+    changed: () => { const el = CUR && CUR.name === "me" ? document.querySelector("#acct") : null; if (el && el.isConnected !== false) { el.outerHTML = accountCard(); mountGsi(); } },  // 내 데이터 카드만 다시 그린다(열린 시트·입력 칸은 그대로)
     log: (...a) => console.warn("[sync]", ...a),
   });
   SYNC_HOOK = () => SYNC.schedule();
@@ -3480,7 +3516,7 @@ function route() {
   if (location.hash !== lastHash) PF_DRAFT = {};  // 티켓 칸 초안은 그 화면에서만  // 평가 안내는 그 화면에서만
   const keepBar = document.querySelector(".afilter")?.scrollLeft || 0, keepRows = [...document.querySelectorAll(".prow")].map(x => x.scrollLeft);  // 지역 칩 줄·추천 줄의 가로 스크롤 위치(다시 그려도 그 자리 유지)  // 지역 칩 줄의 가로 스크롤 위치(다시 그려도 그 자리 유지)
   const drafts = location.hash === lastHash ? NAME_INPUTS.map(id => [id, $("#" + id)?.value || ""]).filter(([, v]) => v) : [];  // 배우 이름 칸에 쓰던 글자(사용자 요청 2026-11-05: 등록된 이름을 지워도 쓰던 이름이 사라지지 않게)
-  CTA = null; const view = $("#view"); view.innerHTML = (V[name] || V.home)(...args);
+  CTA = null; const view = $("#view"); view.innerHTML = (V[name] || V.home)(...args); if (name === "me") mountGsi();
   for (const [id, v] of drafts) { const el = $("#" + id); if (el && !el.value) el.value = v; } view.dataset.view = V[name] ? name : "home";
   const cta = $("#cta"); if (CTA) { cta.hidden = false; cta.innerHTML = `<button class="btn" data-act="${CTA.act}">${esc(CTA.text)}</button>`; } else cta.hidden = true;  // 폰에서는 화면 아래 고정 버튼(넓은 화면은 덩어리 안 버튼)
   $("#back").hidden = ["home", "works", "taste", "onboard", "me"].includes(name) || (name === "plans" && !args.length);  // 캘린더 날짜 화면(#plans/날짜)에는 뒤로
@@ -3867,7 +3903,9 @@ renderDebug();
 if (SYNC && !MOVING) SYNC.start().then(async () => {  // 화면을 먼저 그린 뒤 뒤에서 로그인·서버 판 맞추기
   if (HANDOFF && !IN_KAKAO) { const {code, next} = HANDOFF;  // 카톡 안 브라우저에서 넘어왔다: 기록 받기 → (구글 연결을 누르고 왔으면) 그 로그인으로
     if (code) { let got = false; try { got = await SYNC.handoffIn(code); } catch (e) {} toast(got ? "카카오톡에서 쓰던 기록을 옮겨 왔어요" : "카카오톡 기록을 옮기지 못했어요. 이 브라우저에서 이어서 써 주세요"); }
-    if (next) { const [how, p] = next.split(":"); if (SYNC.status().anon || how === "signIn") { SYNC[how](p).catch(() => { ACC_MSG = "fail"; location.hash = "#me"; route(); }); return; } } }
+    if (next) { const [how, p] = next.split(":");
+      if (p === "google" && gsiOn()) { location.hash = "#me"; route(); toast("구글 버튼을 눌러 연결을 마쳐 주세요"); return; }  // 구글 공식 버튼은 사용자가 직접 눌러야 열린다
+      if (SYNC.status().anon || how === "signIn") { SYNC[how](p).catch(() => { ACC_MSG = "fail"; location.hash = "#me"; route(); }); return; } } }
   let after = null; try { after = JSON.parse(localStorage.getItem(AFTER_AUTH) || "null"); localStorage.removeItem(AFTER_AUTH); } catch (e) {}
   cleanAuthUrl();
   if (AUTO_SIGNIN) { const p = AUTO_SIGNIN; AUTO_SIGNIN = ""; toast("이미 연결된 계정이라 그 계정에서 불러올게요");
