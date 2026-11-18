@@ -456,6 +456,7 @@ html.lock,html.lock body{overflow:hidden}  /* 시트가 열려 있는 동안 뒤
 .achead{display:grid;gap:6px}
 .aclegend{justify-self:end;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 12px;margin:0;font-size:12px;color:var(--muted)}
 .aclegend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+@media (max-width:599px){.aclegend{justify-self:start;justify-content:flex-start}}  /* 모바일: 제목 아래 왼쪽 정렬(사용자 요청 2026-11-18) */
 .acic{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:800;line-height:1;background:var(--soft);color:var(--fg)}
 .acgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 10px}
 @media (min-width:600px){.acgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
