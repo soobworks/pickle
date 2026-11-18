@@ -574,7 +574,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611190028"></script>
+<script src="data.js?v=202611190034"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3418,8 +3418,8 @@ const introDue = (S, seen) => !seen && !hasTaste(S.prefs) && !(S.plans || []).le
 const INTRO_X = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 const introHTML = () => `<div class="inbox"><button type="button" class="inx" data-act="introClose" aria-label="서비스 소개 닫기">${INTRO_X}</button>
   <div class="inhead"><p class="eyebrow">PICKLE 서비스 소개</p><h2 id="introtitle">어떤 캐스팅 조합으로 볼지,<br>PICKLE이 같이 골라 드려요</h2></div>
-  <div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
-  <div class="innav"><button type="button" class="inarrow" data-act="introGo" data-d="-1" aria-label="이전 소개">‹</button><div class="indots">${INTRO.map((x, i) => `<button type="button" class="indot${i ? "" : " on"}" data-act="introGo" data-to="${i}" aria-label="${i + 1}번째 소개: ${x.tag}"></button>`).join("")}</div><button type="button" class="inarrow" data-act="introGo" data-d="1" aria-label="다음 소개">›</button></div>
+  <div class="inview"><div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
+  <button type="button" class="inarrow" data-act="introGo" data-d="-1" aria-label="이전 소개" hidden>‹</button><button type="button" class="inarrow" data-act="introGo" data-d="1" aria-label="다음 소개">›</button></div>
   <div class="inend"><button type="button" class="btn" data-act="introClose">내 취향의 조합 찾기</button></div></div>`;
 // 캡처: 휴대폰 화면(frames.json)과 넓은 화면(900px~, frames_web.json, 2026-11-19 사용자 요청: 글과 예시 화면을 반씩). 연 순간의 화면 폭으로 고른다
 let INTRO_FRAMES = {}, INTRO_IO = null;
@@ -3467,9 +3467,10 @@ function closeIntro() {
   box.hidden = true; box.innerHTML = ""; if (!SHEET) document.documentElement.classList.remove("lock");
   try { localStorage.setItem(INTRO_KEY, today()); } catch (e) { /* 저장이 막힌 브라우저: 이번만 닫힌다 */ }
 }
-function introDots() {  // 넓은 화면: 옆으로 넘긴 위치에 맞춰 점 표시
+function introDots() {  // 넓은 화면: 옆으로 넘긴 위치에 맞춰 양끝 버튼(첫 장면은 오른쪽만, 마지막은 왼쪽만)
   const tr = $("#intrack"); if (!tr || !tr.clientWidth) return; const n = Math.round(tr.scrollLeft / tr.clientWidth);
-  document.querySelectorAll("#intro .indot").forEach((d, i) => { d.classList.toggle("on", i === n); d.setAttribute("aria-current", i === n ? "true" : "false"); });
+  const prev = document.querySelector('#intro .inarrow[data-d="-1"]'), next = document.querySelector('#intro .inarrow[data-d="1"]');
+  if (prev) prev.hidden = n <= 0; if (next) next.hidden = n >= INTRO.length - 1;
 }
 function introGo(d) {
   const tr = $("#intrack"); if (!tr) return; const w = tr.clientWidth || 1, cur = Math.round(tr.scrollLeft / w);
