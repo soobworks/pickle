@@ -574,7 +574,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611182330"></script>
+<script src="data.js?v=202611182345"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -593,6 +593,24 @@ const renameTags = S => { const rn = t => TAG_RENAMED[t] || t, rnList = xs => Ar
   for (const l of S.likes || []) { l.tags = rnList(l.tags); for (const r of l.roles || []) r.tags = rnList(r.tags); }
   for (const rv of S.reviews || []) for (const r of Object.values(rv.rows || {})) if (r) r.tags = rnList(r.tags); };
 renameTags(S);
+// 배역 순서 되살리기(2026-11-18): 서버(Supabase jsonb)는 객체 열쇠 순서를 지키지 않는다(짧은 이름 먼저, 같은 길이는 가나다). 그래서 서버에 다녀온
+// 조합(cast: {배역: 배우}, 예: 처음 보여 준 추천 카드 proto.shown)이 이끼숲은 마르코가 맨 뒤로, 겨울왕국은 안나가 엘사 앞으로 갔다.
+// 저장된 조합을 배역표 순서로 다시 맞춘다: 작품(work 칸 또는 작품 이름 열쇠)의 배역표 → KOPIS 공연 배역표 → 열쇠를 모두 가진 배역표. 모르는 배역은 뒤에(원래 순서대로)
+const ROLE_LISTS = [...Object.values(D.roles || {}).map(rs => rs.map(r => r.role)), ...Object.values(D.showRoles || {}).map(rs => rs.map(([r]) => r)), ...Object.values(D.logCasts || {}).map(c => (c.roles || []).map(([r]) => r))];
+const roleListOf = (work, kopis) => (D.roles || {})[work]?.map(r => r.role) || (kopis && ((D.showRoles || {})[kopis]?.map(([r]) => r) || ((D.logCasts || {})[kopis]?.roles || []).map(([r]) => r))) || null;
+const orderCast = (cast, hint) => { const ks = Object.keys(cast); if (ks.length < 2) return cast;
+  const list = hint && ks.some(k => hint.includes(k)) ? hint : ROLE_LISTS.find(l => ks.every(k => l.includes(k))); if (!list) return cast;
+  const at = k => { const i = list.indexOf(k); return i < 0 ? 1e9 : i; }, sorted = ks.map((k, i) => [k, i]).sort((a, b) => at(a[0]) - at(b[0]) || a[1] - b[1]).map(([k]) => k);
+  return sorted.every((k, i) => k === ks[i]) ? cast : Object.fromEntries(sorted.map(k => [k, cast[k]])); };
+const fixCastOrder = st => { const walk = (v, work) => {
+    if (Array.isArray(v)) { for (const x of v) walk(x, work); return; }
+    if (!v || typeof v !== "object") return;
+    const w = typeof v.work === "string" && v.work ? v.work : work;
+    for (const k of Object.keys(v)) { const x = v[k];
+      if (k === "cast" && x && typeof x === "object" && !Array.isArray(x)) v.cast = orderCast(x, roleListOf(w, typeof v.kopis === "string" ? v.kopis : ""));
+      else { const kw = k.replace(/#.*$/, ""); walk(x, (D.roles || {})[kw] ? kw : w); } } };  // proto.shown·sat 은 작품 이름이 열쇠(날짜 경로는 '작품#날짜')
+  walk(st); return st; };
+fixCastOrder(S);
 let SAVE_HOOK = null, SYNC_HOOK = null;  // 저장할 때마다 부르는 것. SAVE_HOOK: 티켓 기록 보내기 예약(기록 코드가 채움) · SYNC_HOOK: 내 데이터 서버 저장 예약(동기화 코드가 채움, 꺼져 있으면 null)
 const saveRaw = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const save = () => { saveRaw(); if (SAVE_HOOK) SAVE_HOOK(); if (SYNC_HOOK) SYNC_HOOK(); };
@@ -2653,7 +2671,7 @@ if (SYNC_CFG) {
       const keep = {}; for (const k of LOCAL_ONLY) if (k in S) keep[k] = S[k];
       const lp = {}; for (const k of LOCAL_PROTO) if (S.proto && k in S.proto) lp[k] = S.proto[k];
       const next = {prefs: null, query: null, cal: {}, plans: [], tags: [], votes: [], likes: [], reviews: [], ...JSON.parse(JSON.stringify(part || {})), ...keep};
-      next.proto = {...(isObj(next.proto) ? next.proto : {}), ...lp}; renameTags(next);
+      next.proto = {...(isObj(next.proto) ? next.proto : {}), ...lp}; renameTags(next); fixCastOrder(next);
       S = next; saveRaw(); if (!typing()) route();
     },
     legacyAnon: () => TRK.peekAnon(), version: APP_VER,
@@ -3935,7 +3953,7 @@ const ENTRY_FROM = (() => { try { const q = new URLSearchParams(location.search)
 let MOVED = false;
 if (!MOVING && location.hash.startsWith("#move=")) { const mv = readMove(location.hash);
   if (mv) { S = applyMove(mv.pack, S, {get: k => localStorage.getItem(k), set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: k => localStorage.removeItem(k)}, mergeState);
-    renameTags(S); saveRaw(); MOVED = true; }
+    renameTags(S); fixCastOrder(S); saveRaw(); MOVED = true; }
   const to = mv && /^#[^#]*$/.test(mv.to) && !mv.to.startsWith("#move=") ? mv.to : "";
   history.replaceState(null, "", location.pathname + location.search + to); }
 // 새 주소에서 열렸으면 아직 확인 안 한 예전 주소에 한 번 다녀온다(받아 온 데이터는 위에서 이미 넣었다. 출처가 둘이면 돌아온 뒤 다음 출처로). 로그인 다녀온 주소(?code=)는 건드리지 않는다
