@@ -569,7 +569,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611181946"></script>
+<script src="data.js?v=202611182036"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2545,6 +2545,12 @@ function makeSync(env) {
     start, pull, push, schedule, flushNow,
     status: () => ({state, err, uid, anon, email, providers}),
     token: () => token,
+    // 카톡 안 브라우저 → 바깥 브라우저로 기록 넘기기(supabase/handoff_2026-11-18.sql). out: 지금 기록을 올린 뒤 일회용 번호(10분·한 번). 기록이 없으면 ""
+    async handoffOut() { if (!sb || !uid || !hasContent(syncPart(env.getState()))) return ""; if (pushT !== null) { env.clear(pushT); pushT = null; } await push(); if (meta().dirty) throw new Error("not saved");
+      const r = await sb.rpc("make_handoff"); if (r.error) throw r.error; return String(r.data || ""); },
+    // in: 번호로 받은 기록을 이 브라우저 기록과 합친다(같은 칸은 받은 쪽 = 방금까지 카톡에서 쓰던 것). 번호가 없거나 지났으면 false
+    async handoffIn(code) { if (!sb || !uid) return false; const r = await sb.rpc("take_handoff", {p_code: code}); if (r.error) throw r.error; if (!isObj(r.data)) return false;
+      env.applyState(mergeState(syncPart(env.getState()), r.data)); setMeta({...meta(), uid, dirty: true}); await push(); return true; },
     link: p => go("linkIdentity", p),  // 익명 계정에 구글·카카오를 붙인다(이 기기 기록 그대로)
     signIn: p => go("signInWithOAuth", p),  // 이미 연결해 둔 계정으로 들어간다(돌아오면 이 기기 기록과 합친다)
     async signOut() { await push(); await sb.auth.signOut({scope: "local"}); env.store.del(SYNC_META); },
@@ -3356,6 +3362,7 @@ const sheetBody = () => {
   if (SHEET.kind === "video") return videoSheetBody();
   if (SHEET.kind === "unplan") { const x = S.plans[SHEET.i]; if (!x) return "";  // 내 티켓 삭제 확인(사용자 요청 2026-11-09)
     return `<h3>이 공연을 삭제할까요?</h3><p class="ssub">${esc(x.work)} · ${ymdDot(x.date)}${x.time ? ` ${esc(x.time)}` : ""}</p><div class="nbgrid"><button type="button" class="nb" data-act="unplan" data-i="${SHEET.i}">삭제하기</button><button type="button" class="nb" data-act="closeSheet">취소</button></div>`; }
+  if (SHEET.kind === "kakaoLogin") return `<h3>카카오톡 안에서는 구글 로그인이 막혀 있어요</h3><p class="ssub">구글 정책이에요. 크롬·사파리로 열어서 이어 할게요</p><p class="small">지금까지 이 화면에서 고른 취향·티켓도 같이 옮겨져요. 열린 브라우저에서 구글 로그인만 하면 돼요.</p><div class="nbgrid"><button type="button" class="nb" data-act="kakaoOpen" data-next="${esc(SHEET.how)}:${esc(SHEET.p)}">크롬·사파리로 열기</button><button type="button" class="nb" data-act="closeSheet">닫기</button></div>`;  // 카톡 안 브라우저 + 구글(2026-11-18)
   if (SHEET.kind === "share2") return `<h3>카드를 보냈어요. 문구와 링크도 보낼까요?</h3><p class="ssub">같은 대화방을 한 번 더 골라 주세요</p><div class="nbgrid"><button type="button" class="nb" data-act="shareText">문구·링크 보내기</button><button type="button" class="nb" data-act="closeSheet">닫기</button></div>`;  // 안드로이드 공유 2단계(shareCard)
   if (SHEET.kind === "duel") { const {work, cur} = SHEET;
     return `<h3>${esc(cur.role)}, 둘 중 누가 끌려요?</h3><p class="small muted">고른 결과는 이 작품의 추천 조합에 바로 반영돼요.</p><div class="duel">${duelSide(work, cur.role, cur.left)}${duelSide(work, cur.role, cur.right)}</div>
@@ -3603,7 +3610,9 @@ document.addEventListener("click", e => {
     case "selActor": { const before = setSel(D, S, d.work, d.role, d.a, today()); save(); route(); break; }  // 그 배역의 배우를 바꾼다: 아래 날짜가 다시 계산된다
     case "selCombo": { const c = cardsOf(d).list[+d.i]; if (!c) return; setSelCast(S, d.work, c.cast);
       track("cast_select", {work: d.work, path: d.dd ? "date" : d.nav === "rec" || CUR.name !== "find" ? "show" : "actor", rank: +d.i + 1, to_calendar: !!d.nav});
-      if (d.nav) ((S.proto ||= {}).pick ||= {})[d.work + (d.dd ? "#날짜" : "")] = c.key; save(); if (d.nav) location.hash = d.nav === "rec" ? `#find/${d.work}/cal` : `#find/${d.work}/${d.dd ? "date" : "actor"}/cal`; else route(); break; }  // 배우 먼저: 고른 조합의 캘린더 화면으로
+      if (d.nav) { const P = (S.proto ||= {}), ds = selDates(D, d.work, curSel(D, S, d.work, today()), today()), want = d.dd ? S.cal[d.work]?.dates || [] : [], d0 = ds.find(x => want.includes(x)) || ds[0];
+        (P.pick ||= {})[d.work + (d.dd ? "#날짜" : "")] = c.key; if (d0) { (P.cd ||= {})[d.work] = d0; (P.cm ||= {})[d.work] = d0.slice(0, 7); } }  // 캘린더는 가장 가까운 날(날짜 먼저면 고른 날 중 첫날)을 눌러 둔 채로 연다(사용자 요청 2026-11-18)
+      save(); if (d.nav) location.hash = d.nav === "rec" ? `#find/${d.work}/cal` : `#find/${d.work}/${d.dd ? "date" : "actor"}/cal`; else route(); break; }  // 배우 먼저: 고른 조합의 캘린더 화면으로
     case "sat": { const c = cardsOf(d).list[+d.i]; if (!c) return; // 아이콘(2026-11-17): 다른 쪽을 누르면 바로 바뀐다(setSat 이 덮어쓴다). 같은 쪽을 다시 누르면 풀린다
       const run = runLabelOf(D, d.work, (D.perfs.find(p => p.work === d.work && comboKey(D, d.work, p.cast) === c.key) || {}).date || today());
       const r = setSat(S, d.work, c.key, c.cast, d.a, run, +d.i + 1); if (r === null) return;
@@ -3631,7 +3640,8 @@ document.addEventListener("click", e => {
     case "clearAppData": { CLR_ASK = false; try { localStorage.removeItem(KEY); } catch (e) {} location.hash = "#taste/1"; location.reload(); break; }  // 취향·볼 예정(앱 사용 데이터)은 따로 물어서만 지운다
     case "clearAppKeep": CLR_ASK = false; route(); break;
     // 내 데이터(동기화) 카드
-    case "accLink": case "accSignIn": if (SYNC) SYNC[d.act === "accLink" ? "link" : "signIn"](d.p).catch(() => toast("계정 연결을 시작하지 못했어요. 잠시 뒤 다시 해 주세요")); break;
+    case "accLink": case "accSignIn": if (IN_KAKAO && d.p === "google") { SHEET = {kind: "kakaoLogin", how: d.act === "accLink" ? "link" : "signIn", p: d.p}; renderSheet(); break; }  // 구글은 카톡 안 브라우저에서 로그인을 막는다(403 disallowed_useragent) → 바깥 브라우저로
+      if (SYNC) SYNC[d.act === "accLink" ? "link" : "signIn"](d.p).catch(() => toast("계정 연결을 시작하지 못했어요. 잠시 뒤 다시 해 주세요")); break;
     case "accAsk": ACC_ASK = d.k || ""; route(); break;
     case "accMsg": ACC_MSG = ""; route(); break;
     case "accSignOut": { ACC_ASK = ""; if (!SYNC) break; const done = () => { try { localStorage.removeItem(KEY); } catch (e) {} location.hash = "#home"; location.reload(); };
@@ -3679,7 +3689,13 @@ document.addEventListener("click", e => {
     case "clearDates": { const st = S.cal[d.work || work]; st.dates = []; if (S.query?.work === (d.work || work)) S.query.dates = []; save(); route(); break; }
     case "toSide": $("#view .side").scrollIntoView(); break;
     case "closeSheet": closeSheet(); break;
-    case "kakaoOpen": location.href = kakaoOut(); break;  // 카카오톡 → 외부 브라우저로 지금 화면 열기
+    case "kakaoOpen": {  // 카카오톡 → 외부 브라우저로 지금 화면 열기. 동기화가 켜져 있으면 기록도 같이(일회용 번호, 4초 안에 못 만들면 기록 없이 연다)
+      const next = /^(link|signIn):(google|kakao)$/.test(d.next || "") ? d.next : "", open = code => { location.href = kakaoOut(code, next); };
+      if (SHEET) closeSheet();
+      if (!SYNC) { open(""); break; }
+      toast("옮길 준비를 하고 있어요…");
+      Promise.race([SYNC.handoffOut(), new Promise(r => setTimeout(() => r(""), 4000))]).then(open, () => open(""));
+      break; }
     case "kakaoHide": { try { sessionStorage.setItem("pickle_kakao_off", "1"); } catch (e) {} const el = document.querySelector("#kakaobar"); if (el) el.hidden = true; break; }
     case "runQuery": { const st = S.cal[d.work]; if (!st?.count) { toast("조건에 맞는 회차가 없어요"); return; } S.query = {work: d.work, lo: st.lo, hi: st.hi, actors: st.actors, dates: st.dates || []}; save(); location.hash = "#result"; break; }
     case "plan": { const p = D.perfs.find(x => x.work === d.work && x.date === d.date && x.time === d.time); if (!p) return; if (isPrivate(p)) { toast("단체 대관 공연이라 일반 예매가 안 돼요"); return; } finishPending("plan", p); break; }  // 바로 담는다(별점 시트 없음)
@@ -3817,6 +3833,11 @@ let PULL_DONE_MSG = "";
 // 로그인(계정 연결) 다녀온 주소: 실패·취소(?error=)는 바로 지우고 내 데이터 카드에 알린다. 성공 코드(?code=)는 supabase-js 가 읽은 뒤(SYNC.start 다음) 지운다
 // 연결하기가 '이미 다른 기록에 연결된 계정'으로 거절되면 묻지 않고 그 계정으로 불러오기까지 이어 간다(AUTO_SIGNIN). 불러오기도 실패하면 안내만(같은 일을 되풀이하지 않는다)
 let AUTO_SIGNIN = "";
+// 카톡 안 브라우저에서 넘어온 주소(?handoff=번호&next=link:google): 바로 주소에서 지우고(새로고침·공유에 안 남게) SYNC.start 다음에 쓴다
+const HANDOFF = (() => { const q = new URLSearchParams(location.search), code = q.get("handoff") || "", next = q.get("next") || "";
+  if (!code && !next) return null; q.delete("handoff"); q.delete("next");
+  history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
+  return {code: /^[0-9a-f]{64}$/.test(code) ? code : "", next: /^(link|signIn):(google|kakao)$/.test(next) ? next : ""}; })();
 if (SYNC) { const q = new URLSearchParams(location.search), code = q.get("error_code") || q.get("error");
   if (code) { let a = {}; try { a = JSON.parse(localStorage.getItem(AFTER_AUTH) || "{}") || {}; } catch (e) {}
     const p = a.p || "google", taken = code === "identity_already_exists" || /already/i.test(q.get("error_description") || "");
@@ -3828,7 +3849,9 @@ const NOTICE_SEEN = noticeSendOk();  // 이번에 안내 화면으로 바로 들
 // 카카오톡 인앱 브라우저(사용자 결정 2026-11-13): 카드 이미지 공유·저장이 잘 안 되는 곳이라 머리줄 아래에 [외부 브라우저로 열기]를 띄운다.
 // kakaotalk://web/openExternal 은 카카오톡이 주는 주소로, 안드로이드는 기본 브라우저·아이폰은 사파리로 지금 화면을 연다. 닫으면 이번 방문 동안은 다시 안 띄운다. 링크 미리보기 로봇(kakaotalk-scrap)은 뺀다
 const IN_KAKAO = (() => { const ua = (typeof navigator !== "undefined" && navigator.userAgent) || ""; return /KAKAOTALK/i.test(ua) && !/scrap/i.test(ua); })();
-const kakaoOut = () => "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+const kakaoOut = (code = "", next = "") => { const u = new URL(location.href); u.searchParams.delete("handoff"); u.searchParams.delete("next");
+  if (code) u.searchParams.set("handoff", code); if (next) u.searchParams.set("next", next);  // 바깥 브라우저가 이 번호로 기록을 받고(take_handoff), next 가 있으면 그 로그인까지 이어 간다
+  return "kakaotalk://web/openExternal?url=" + encodeURIComponent(u.href); };
 const kakaoBar = () => { const el = document.querySelector("#kakaobar"); if (!el) return; let off = false; try { off = sessionStorage.getItem("pickle_kakao_off") === "1"; } catch (e) {}
   el.hidden = !IN_KAKAO || off; if (el.hidden) return;
   el.innerHTML = `<span>카카오톡에서는 카드 공유·저장 같은 일부 기능이 잘 안 돼요</span><button type="button" class="kbtn" data-act="kakaoOpen">외부 브라우저로 열기</button><button type="button" class="kx" data-act="kakaoHide" aria-label="안내 닫기">✕</button>`; };
@@ -3838,7 +3861,10 @@ if (NOTICE_SEEN && !MOVING) { backfillReviews(); syncTickets(); }
 if (PULL_DONE_MSG) toast(PULL_DONE_MSG);
 // 주소 이사로 데이터를 받아도 알림은 띄우지 않는다(사용자 요청 2026-11-08: 거쳐 가는 느낌을 줄이기). 받은 데이터는 그대로 보인다
 renderDebug();
-if (SYNC && !MOVING) SYNC.start().then(() => {  // 화면을 먼저 그린 뒤 뒤에서 로그인·서버 판 맞추기
+if (SYNC && !MOVING) SYNC.start().then(async () => {  // 화면을 먼저 그린 뒤 뒤에서 로그인·서버 판 맞추기
+  if (HANDOFF && !IN_KAKAO) { const {code, next} = HANDOFF;  // 카톡 안 브라우저에서 넘어왔다: 기록 받기 → (구글 연결을 누르고 왔으면) 그 로그인으로
+    if (code) { let got = false; try { got = await SYNC.handoffIn(code); } catch (e) {} toast(got ? "카카오톡에서 쓰던 기록을 옮겨 왔어요" : "카카오톡 기록을 옮기지 못했어요. 이 브라우저에서 이어서 써 주세요"); }
+    if (next) { const [how, p] = next.split(":"); if (SYNC.status().anon || how === "signIn") { SYNC[how](p).catch(() => { ACC_MSG = "fail"; location.hash = "#me"; route(); }); return; } } }
   let after = null; try { after = JSON.parse(localStorage.getItem(AFTER_AUTH) || "null"); localStorage.removeItem(AFTER_AUTH); } catch (e) {}
   cleanAuthUrl();
   if (AUTO_SIGNIN) { const p = AUTO_SIGNIN; AUTO_SIGNIN = ""; toast("이미 연결된 계정이라 그 계정에서 불러올게요");
