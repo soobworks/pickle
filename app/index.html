@@ -569,7 +569,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611181559"></script>
+<script src="data.js?v=202611181635"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -920,7 +920,7 @@ function personalCounts(S) {  // 좋았던 회차 / 아쉬웠던 회차 (같은 
 // </personal-weights>
 // <taste-first>
 // 핵심 배역(docs/261027_2 10.1절): 주연/조연(비중)을 쓰지 않고 roles.tsv 의 배역 전체를 같은 무게로, 순서도 roles.tsv 대로. 시카고 에이모스 하트·메리 선샤인은 추천 단위에서 뺀다(결정 13·28)
-const NOT_UNIT = {"시카고": ["에이모스 하트", "메리 선샤인"], "마하고니": ["코러스"]};  // 마하고니 코러스 칸 = 그 회차 코러스 여러 명('김한결, 마이삭'), recommend.py NOT_UNIT 과 같게
+const NOT_UNIT = {"시카고": ["에이모스 하트", "메리 선샤인"], "마하고니": ["코러스"], "곤 투모로우": ["와다"]};  // 마하고니 코러스 칸 = 그 회차 코러스 여러 명('김한결, 마이삭'), recommend.py NOT_UNIT 과 같게
 // 보여주기만 하는 배역(2026-11-17 사용자 선택): 한 칸에 그 회차 배우 여러 명('김한결, 마이삭'). 조합·고르기에는 안 쓰고 배우 먼저 화면·조합 카드에 명단과 영상만 보인다
 const SHOW_ONLY = {"마하고니": ["코러스"]};
 const showOnlyRoles = (D, work) => ((D.roles || {})[work] || []).filter(r => (SHOW_ONLY[work] || []).includes(r.role));
