@@ -803,21 +803,24 @@ button,.btn,.chip,.nb{text-align:center}
 .inend{display:grid;margin-top:40px}
 .inend .btn{min-height:52px;font-size:16px}
 @media (min-width:900px){
-  .inbox{width:min(1200px,calc(100% - 48px));height:auto;max-height:calc(100vh - 40px);overflow:hidden;display:grid;gap:12px;padding:28px 48px 22px;border:1px solid var(--line);border-radius:24px}
-  .inx{position:absolute;top:18px;right:18px}
-  .inhead h2{font-size:24px}
+  /* 2026-11-19: 글:예시 화면 = 3:7. 제목은 왼쪽 글 칸 위에 얹고, 예시 화면은 상자 맨 위(제목 오른쪽)부터 크게 */
+  .inbox{width:min(1280px,calc(100% - 48px));height:auto;max-height:calc(100vh - 40px);overflow:hidden;display:grid;gap:14px;padding:28px 60px 22px;border:1px solid var(--line);border-radius:24px}
+  .inx{position:absolute;top:12px;right:12px}
+  .inhead{position:absolute;z-index:1;top:28px;left:60px;width:calc((100% - 160px) * .3)}
+  .inhead h2{font-size:19px}
   .intrack{display:flex;gap:0;margin-top:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
   .intrack::-webkit-scrollbar{display:none}
-  .inslide{flex:0 0 100%;scroll-snap-align:start;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:48px;padding:4px 0}  /* 글과 예시 화면을 반씩(2026-11-19) */
-  .inslide h3{font-size:30px}
-  .insub{font-size:16px}
+  .inslide{flex:0 0 100%;scroll-snap-align:start;grid-template-columns:minmax(0,3fr) minmax(0,7fr);align-items:center;gap:40px;padding:0}
+  .intext{padding-top:96px}  /* 위에 얹은 제목과 겹치지 않게 */
+  .inslide h3{font-size:22px}
+  .insub{font-size:14px}
   .inphone{width:auto;height:min(520px,calc(100vh - 350px))}
-  .inphone.web{justify-self:stretch;width:100%;height:auto;max-height:calc(100vh - 330px);aspect-ratio:1280/800;border-width:6px;border-radius:14px}  /* 넓은 화면 캡처(1280×800)는 웹 화면 틀 */
+  .inphone.web{justify-self:end;width:100%;height:auto;max-height:calc(100vh - 160px);aspect-ratio:900/800;border-width:6px;border-radius:14px}  /* 넓은 화면 캡처(900×800, 양옆 여백 없이 꽉 차게)는 웹 화면 틀 */
   .inphone.web .intap{width:34px;height:34px;margin:-17px 0 0 -17px}
   /* 넘기기 버튼은 장면 양끝(2026-11-19): 첫 장면은 예시 화면 오른쪽에 → 만, 마지막은 글 왼쪽에 ← 만, 가운데는 둘 다. 하단은 [내 취향의 조합 찾기]만 */
   .inarrow{display:grid;place-items:center;position:absolute;top:50%;z-index:1;width:40px;height:40px;margin-top:-20px;padding:0 0 2px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:22px;line-height:1;cursor:pointer}
-  .inarrow[data-d="-1"]{left:-46px}
-  .inarrow[data-d="1"]{right:-46px}
+  .inarrow[data-d="-1"]{left:-52px}
+  .inarrow[data-d="1"]{right:-52px}
   .inarrow[hidden]{display:none}
   .inend{justify-self:center;width:280px;margin-top:0}
 }
