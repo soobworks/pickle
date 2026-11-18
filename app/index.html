@@ -66,6 +66,7 @@ a{color:inherit}
 .card.picked{border-top:2px solid var(--hl)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .gsi{min-height:44px;display:flex;align-items:center}
+.gsi iframe{color-scheme:light}  /* 구글 버튼 둘레 흰 네모: 앱은 어두운 화면(color-scheme dark)이라 밝은 구글 iframe 에 흰 바탕이 깔린다. 같은 light 로 맞추면 바탕이 투명해진다 */
 .chips:has(> .pair){display:grid;gap:6px}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .pair .chip{justify-content:center;text-align:center;min-width:0}
@@ -572,7 +573,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611182259"></script>
+<script src="data.js?v=202611182311"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1584,7 +1585,7 @@ const mountGsi = async () => { if (!gsiOn()) return;
   try { const id = await loadGsi(), n = await (GSI_NONCE ||= newNonce());  // 동시에 여러 번 불려도 번호는 하나
     if (GSI_INIT !== n.hash) { id.initialize({client_id: SYNC_CFG.gclient, nonce: n.hash, callback: resp => gsiDone(resp, n), auto_select: false, context: "signin"}); GSI_INIT = n.hash; }
     const el = document.querySelector("#gsi"); if (!el || el.isConnected === false || !gsiOn()) return;
-    el.innerHTML = ""; id.renderButton(el, {type: "standard", theme: "outline", size: "large", text: "continue_with", shape: "pill", locale: "ko", width: 260});
+    el.innerHTML = ""; id.renderButton(el, {type: "standard", theme: "filled_black", size: "large", text: "continue_with", shape: "pill", locale: "ko", width: 260});
   } catch (e) { console.warn("[gsi]", e); } };
 // '예전 기록 가져오기'(위 PULL_MANUAL): 홈은 이 브라우저에 기록이 아직 없고 [괜찮아요]를 안 눌렀을 때만, 내 취향 탭은 늘. 새 주소(pickle-musical.com)에서만 보인다
 const pullOff = () => { try { return !!localStorage.getItem(PULL_HINT_OFF); } catch (e) { return true; } };
