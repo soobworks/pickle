@@ -569,7 +569,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="sheet-bg" id="sheetbg" data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611182104"></script>
+<script src="data.js?v=202611182120"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2512,7 +2512,8 @@ function makeSync(env) {
     if (mine && row.rev === m.rev) { state = "ok"; return m.dirty ? push() : undefined; }
     const dirty = mine ? !!m.dirty : hasContent(local);  // 다른 사람(예전 익명 번호)으로 쓰던 기기에서 계정을 불러왔으면 이 기기 기록도 합친다
     if (!dirty) { env.applyState(row.state || {}); setMeta({uid, rev: row.rev, dirty: false}); state = "ok"; return; }
-    env.applyState(mergeState(row.state || {}, local)); setMeta({uid, rev: row.rev, dirty: true});
+    // 같은 칸이 둘 다 있으면: 같은 유저의 다른 기기 변경이면 이 기기 것, 다른 유저(익명)로 쓰던 기기에서 계정을 불러왔으면 계정 것(취향 카드·본진 등. 2026-11-18 PC→폰 불러오기에서 폰의 예전 취향이 PC 것을 덮었다). 목록은 둘 다 합집합
+    env.applyState(mine ? mergeState(row.state || {}, local) : mergeState(local, row.state || {})); setMeta({uid, rev: row.rev, dirty: true});
     return push();
   }
   // 올리기: 내가 마지막으로 본 판(rev)이 서버와 같을 때만 저장된다(save_state). 다르면(다른 기기가 먼저 저장) 받아서 합친 뒤 다시, 3번까지
@@ -3048,20 +3049,19 @@ const actorFirst = (w, step) => {
   if (step === "cal") return actorCal(w, ref);
   const clash = mustClash(D, work, c, from), left = a => D.perfs.some(p => p.work === work && p.date >= from && !closed(p) && Object.values(p.cast).includes(a));
   const state = a => { const x = c.pick.find(y => y.a === a); return x ? (x.must ? "must" : "maybe") : c.avoid.includes(a) || c.extra.includes(a) ? "avoid" : ""; };
+  // 피하고 싶음(사용자 요청 2026-11-18): 이름 버튼 오른쪽 떰즈다운. 누르면 붉게 채워지고 이 작품에서 피할 배우, 다시 누르면 풀림. 모든 작품에 적용 중인 배우(취향 카드)는 채워진 채로 두고 '내 취향'에서 바꾼다
+  const no = (a, s, off) => `<button type="button" class="saticon acno${s === "avoid" ? " on" : ""}" data-act="acAvoid" data-work="${W}" data-a="${esc(a)}" aria-pressed="${s === "avoid"}" aria-label="${esc(a)} 피하고 싶음${c.avoid.includes(a) ? "(모든 작품에 적용 중)" : ""}" title="피하고 싶음"${off && s !== "avoid" ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${SAT_ICON.dislike}</svg></button>`;
   const roles = unitRoles(D, work).map(r => `<div class="rolebox"><div class="rolehead"><b>${esc(r.role)}</b></div><div class="acgrid">${r.cast.map(a => { const s = state(a), off = !left(a), on = s === "must" || s === "maybe";
-    const label = `${esc(a)}${s === "must" ? ", 반드시 포함" : s === "maybe" ? ", 가능하면 포함" : ""}. 누를 때마다 가능하면 포함, 반드시 포함, 취소 순으로 바뀌어요`;
-    return `<div class="accell"><button class="chip acname ${on ? `on ${s}` : ""}" data-act="acCycle" data-work="${W}" data-a="${esc(a)}"${off || s === "avoid" ? " disabled" : ""} aria-label="${label}">${on ? `<span class="acic" aria-hidden="true">${AC_ICON[s]}</span>` : ""}${esc(a)}${s === "avoid" ? " · 피함" : off ? " · 남은 회차 없음" : ""}</button>
+    const label = `${esc(a)}${s === "must" ? ", 반드시 포함" : s === "maybe" ? ", 가능하면 포함" : s === "avoid" ? ", 피하고 싶은 배우" : ""}. 누를 때마다 가능하면 포함, 반드시 포함, 취소 순으로 바뀌어요`;
+    return `<div class="accell"><div class="acrow"><button class="chip acname ${on ? `on ${s}` : ""}" data-act="acCycle" data-work="${W}" data-a="${esc(a)}"${off || s === "avoid" ? " disabled" : ""} aria-label="${label}">${on ? `<span class="acic" aria-hidden="true">${AC_ICON[s]}</span>` : ""}${esc(a)}${off && s !== "avoid" ? " · 남은 회차 없음" : ""}</button>${no(a, s, off)}</div>
       ${acVideo(work, r.role, a)}</div>`; }).join("")}</div></div>`).join("")
-    + showOnlyRoles(D, work).map(r => `<div class="rolebox"><div class="rolehead"><b>${esc(r.role)}</b> <span class="tiny muted">회차마다 바뀌어서 고를 수는 없어요</span></div><div class="acgrid">${r.cast.map(a => `<div class="accell"><span class="chip acname">${esc(a)}</span>
+    + showOnlyRoles(D, work).map(r => `<div class="rolebox"><div class="rolehead"><b>${esc(r.role)}</b> <span class="tiny muted">회차마다 바뀌어서 고를 수는 없어요</span></div><div class="acgrid">${r.cast.map(a => `<div class="accell"><div class="acrow"><span class="chip acname">${esc(a)}</span>${no(a, state(a) === "avoid" ? "avoid" : "", !left(a))}</div>
       ${acVideo(work, r.role, a)}</div>`).join("")}</div></div>`).join("");
   const clashLine = !clash ? "" : `<div class="card pinask"><p class="small">${clash.kind === "role" ? `${esc(clash.a)}${wagwa(clash.a)} ${esc(clash.b)}${eun(clash.b)} 같은 배역이라 한 회차에 함께 나오지 않아요` : `${esc(clash.a)}${wagwa(clash.a)} ${esc(clash.b)}${iga(clash.b)} 함께 나오는 회차가 없어요`}</p><button class="chip" data-act="acSet" data-work="${W}" data-a="${esc(clash.b)}" data-k="maybe">${esc(clash.b)}${eul(clash.b)} 가능하면 포함으로 바꾸기</button></div>`;
   return `<div class="one sv"><div class="achead"><div><p class="eyebrow">${W} · 배우 먼저</p><h1>누구를 꼭 보고 싶어요?</h1></div>
-      <p class="aclegend"><span><b class="acic">✓</b> 가능하면 포함</span><span><b class="acic">★</b> 반드시 포함</span><span class="muted">한 번 더 누르면 취소</span></p></div>
+      <p class="aclegend"><span><b class="acic">✓</b> 가능하면 포함</span><span><b class="acic">★</b> 반드시 포함</span><span><svg class="aclg-no" viewBox="0 0 24 24" aria-hidden="true">${SAT_ICON.dislike}</svg> 피하고 싶음</span></p></div>
     <section class="sec">${roles}</section>
     ${clashLine}
-    <div class="card"><h3>피하고 싶은 배우 <span class="small muted">선택</span></h3><div class="chips">${c.avoid.map(a => `<span class="tag">${esc(a)}</span>`).join("")}${c.extra.map(a => `<button class="chip x on" data-act="acSet" data-work="${W}" data-a="${esc(a)}" data-k="">${esc(a)} ×</button>`).join("")}</div>
-      <div class="row"><input id="acAvoid" list="acActors" placeholder="이 작품에 한해 더 피할 배우" autocomplete="off" style="flex:1"><button class="chip" data-act="acAvoidAdd" data-work="${W}">추가</button></div><datalist id="acActors">${[...workCastSet(D, work)].sort().map(a => `<option value="${esc(a)}">`).join("")}</datalist>
-      <p class="tiny muted">${c.avoid.length ? "회색은 모든 작품에 적용 중인 배우예요('내 취향'에서 바꿔요). " : ""}이 배우가 나오는 회차는 배역과 상관없이 빼요.</p></div>
     ${c.edited ? `<button class="chip x" data-act="acReset" data-work="${W}">평소 배우 조건으로 되돌리기</button>` : ""}
     <a class="btn" href="#find/${W}/actor/recs">확인 · 추천 조합 보기</a></div>`;
 };
@@ -3462,7 +3462,7 @@ const vopenTap = d => {  // 영상 ID 가 있는 썸네일을 눌렀을 때: 유
   SHEET = {kind: "video", work: d.work, role: d.role || "", a: d.a, vid: d.vid}; renderSheet();
 };
 const vAfter = sel => { if (SHEET?.kind === "video") { SHEET.dirty = true; SHEET.focus = sel; renderSheet(); } else route(); };  // 모달 안에서 답·칩·담기를 누르면 모달만 다시 그린다(닫을 때 뒤 화면을 새로 그린다)
-const NAME_INPUTS = ["favB", "fav", "avoidIn", "acAvoid", "lkadd", "lmadd"];  // 배우 이름을 직접 쓰는 칸
+const NAME_INPUTS = ["favB", "fav", "avoidIn", "lkadd", "lmadd"];  // 배우 이름을 직접 쓰는 칸
 function route() {
   if (MOVING) return;  // 새 주소로 넘기는 중(주소 이사)
   const h = decodeURIComponent(location.hash.slice(1) || entryRoute(S.prefs, S).slice(1));  // 첫 화면: 취향을 한 번도 안 다룬 사람은 취향폼, 아니면 홈
@@ -3550,8 +3550,9 @@ document.addEventListener("click", e => {
       const r = setActorCond(D, S, d.work, d.a, k); if (r === false) { toast("피하고 싶은 배우예요. '내 취향'에서 바꿀 수 있어요"); return; } if (r === null) return; save(); route(); break; }
     case "acMove": if (moveActor(D, S, d.work, d.a, +d.d)) { save(); route(); } break;
     case "acReset": resetActorConds(S, d.work); save(); route(); break;
-    case "acAvoidAdd": { const el = $("#acAvoid"), ns = pickNames(D, el?.value).map(([v]) => v); if (!ns.length) return; const miss = ns.filter(v => setActorCond(D, S, d.work, v, "avoid") === null);
-      el.value = miss.join(", "); save(); route(); if (miss.length) { toast(`${miss.join("·")}: 이 작품에 나오는 배우만 고를 수 있어요`); $("#acAvoid")?.focus(); } break; }
+    case "acAvoid": { const c = actorConds(D, S, d.work);  // 떰즈다운: 이 작품에서 피할 배우 켜기·끄기. 모든 작품에 적용 중인 배우는 '내 취향'에서 바꾼다
+      if (c.avoid.includes(d.a)) { toast("모든 작품에서 피하는 배우예요. '내 취향'에서 바꿀 수 있어요"); return; }
+      if (setActorCond(D, S, d.work, d.a, c.extra.includes(d.a) ? "" : "avoid") === null) return; save(); route(); break; }
     case "wtReset": { const st = S.cal[d.w]; if (st) { st.edited = false; delete st.prio; followBase(st, S.prefs?.axes || []); } save(); route(); break; }  // 평소 취향으로 되돌리기
     case "addAvoid": { const el = $("#avoidIn"), ns = pickNames(D, el?.value), P = prefsOf(); if (!ns.length) return;
       for (const [v, born] of ns) { if (born) (P.born ||= {})[v] = born; P.favs = P.favs.filter(a => a !== v); if (P.must) P.must = P.must.filter(a => a !== v); if (P.bonjin) P.bonjin = P.bonjin.filter(a => a !== v); if (!(P.avoid ||= []).includes(v)) P.avoid.push(v); }
@@ -3804,7 +3805,7 @@ document.addEventListener("keydown", e => {  // 시트(모달)가 열려 있을 
   if (!f.length) { e.preventDefault(); return; }
   if (e.shiftKey && (on === f[0] || on === $("#sheet"))) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && on === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
 });
-const ENTER_ADD = {favB: '[data-act="addFav"][data-k="b"]', fav: '[data-act="addFav"]:not([data-k])', avoidIn: '[data-act="addAvoid"]', lkadd: '[data-act="lkAdd"]', lmadd: '[data-act="lmAdd"]', acAvoid: '[data-act="acAvoidAdd"]'};  // 배우 검색 칸에서 엔터 = 그 칸의 [추가]
+const ENTER_ADD = {favB: '[data-act="addFav"][data-k="b"]', fav: '[data-act="addFav"]:not([data-k])', avoidIn: '[data-act="addAvoid"]', lkadd: '[data-act="lkAdd"]', lmadd: '[data-act="lmAdd"]'};  // 배우 검색 칸에서 엔터 = 그 칸의 [추가]
 document.addEventListener("keydown", e => { const sel = e.key === "Enter" && !e.isComposing && ENTER_ADD[e.target.id]; if (sel) { e.preventDefault(); $(sel)?.click(); } });
 // 유입 경로(2026-11-08): 홍보 링크의 꼬리표 ?from=x (또는 utm_source=x)를 읽어 이번 방문의 첫 기록(visit)에 from 으로 남긴다. 영문 소문자·숫자·_.- 20자까지만.
 // 읽은 뒤 주소에서 지운다(공유된 주소에 꼬리표가 따라다니지 않게). 다른 쿼리(?debug=1 등)는 그대로
