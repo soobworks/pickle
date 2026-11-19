@@ -536,8 +536,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261119d">
-<link rel="stylesheet" href="app.css?v=20261119d">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261119f">
+<link rel="stylesheet" href="app.css?v=20261119f">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611192255"></script>
+<script src="data.js?v=202611192308"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3541,13 +3541,9 @@ const SEARCH_BOT = /Yeti|NaverBot|Googlebot|Google-InspectionTool|bingbot|Daum|D
 const homeNotices = () => { if (SEARCH_BOT) return "";
   const rec = recNoticeOn(), sync = syncNoticeOn(), pull = pullHintOn();
   if (!rec && !sync && !pull) return "";
-  const top = rec || sync ? `<div class="nsec">
-    ${rec ? `<div class="nitem"><p class="small"><b>기록 안내가 바뀌었어요 (11월 5일)</b></p>
-      ${noticeSendOk() ? "" : `<p class="small">이제 내 티켓에 등록한 티켓(공연명·일시·출연·장소·좌석·금액·구매처·리뷰/메모)과 본 공연 기록(배우별 평가와 태그)도 남겨요. 앨범에서 고른 포스터 사진은 보내지 않아요. 전에 이 기기에 저장해 둔 티켓과 기록도 한 번 보내요.</p>`}
-      <p class="small">보관 기간이 바뀌었어요. 6개월이 지나면 지우던 기록을 이제 서비스를 운영하는 동안 보관하고, 서비스를 마치면 지워요. 쓰임은 그대로 추천을 고치는 데만이에요.</p></div>` : ""}
-    ${sync ? `<div class="nitem"><p class="small"><b>내 데이터를 서버에도 저장해요</b></p>
-      <p class="small">브라우저를 지우거나 기기를 바꿔도 이어 쓸 수 있게 취향·내 티켓·관람 리뷰를 서버에 저장해요.${SYNC_CFG.login.length ? " 계정을 연결하면 다른 기기에서도 불러올 수 있어요." : ""} 언제든 내 취향 탭에서 모두 지울 수 있어요.</p></div>` : ""}
-    <div class="chips"><button class="btn" data-act="noticeOk">확인</button><a class="btn ghost" href="#privacy">${rec ? "자세히 보기·기록 끄기" : "자세히 보기"}</a></div></div>` : "";
+  // 한 줄만(2026-11-19 사용자 요청: 이용자는 무엇이 바뀌었는지보다 안내가 있다는 것만 알면 된다). 바뀐 내용·서버 저장 설명은 [자세히 보기·기록 끄기](#privacy)에서
+  const top = rec || sync ? `<div class="nsec nline"><p class="small"><b>개인정보 기록 안내</b></p>
+    <div class="chips"><button class="btn" data-act="noticeOk">확인</button><a class="btn ghost" href="#privacy">자세히 보기·기록 끄기</a></div></div>` : "";
   const bottom = pull ? `<div class="nsec"><p class="small">예전 주소(2ma1995.github.io)에서 PICKLE을 쓰셨나요? 그때 저장한 취향·내 티켓·리뷰를 가져올 수 있어요.</p>
     <div class="chips"><button class="btn ghost" data-act="pullOld">예전 기록 가져오기</button><button class="chip x" data-act="pullOldHide">괜찮아요</button></div></div>` : "";
   return `<div class="card notices" role="status">${top}${bottom}</div>`;
