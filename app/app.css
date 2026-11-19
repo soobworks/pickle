@@ -789,14 +789,14 @@ button,.btn,.chip,.nb{text-align:center}
 .insub{margin:0;color:var(--muted);font-size:14.5px;line-height:1.6;word-break:keep-all}
 .inphone{position:relative;justify-self:center;width:min(72vw,280px);aspect-ratio:390/844;border-radius:32px;border:7px solid #2A3038;background:#0B0E12;overflow:hidden}
 .inscreen,.inscreen img{position:absolute;inset:0}
-.inscreen img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .35s ease;user-select:none}  /* 옆으로 밀지 않고 겹쳐 바꾼다(2026-11-19) */
+.inscreen img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s ease;user-select:none}  /* 옆으로 밀지 않고 겹쳐 바꾼다(2026-11-19) */
 .inscreen img.on{opacity:1}
 .inscreen.cut img{transition:none}  /* 같은 화면에서 버튼만 바뀐 장: 전환 없이 바로 */
-.intap{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:rgba(255,255,255,.32);border:2px solid rgba(255,255,255,.92);opacity:0;transform:scale(1.5);transition:opacity .25s ease,transform .25s ease;pointer-events:none}
+.intap{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:rgba(255,255,255,.32);border:2px solid rgba(255,255,255,.92);opacity:0;transform:scale(1.5);transition:opacity .18s ease,transform .18s ease;pointer-events:none}
 .intap.show{opacity:1;transform:scale(1)}
 .intap::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid rgba(255,255,255,.8);opacity:0}
 .intap.go{transform:scale(.8)}
-.intap.go::after{animation:inring .6s ease-out}
+.intap.go::after{animation:inring .35s ease-out}
 @keyframes inring{from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(2)}}
 .inview{position:relative}
 .inarrow{display:none}
@@ -815,8 +815,8 @@ button,.btn,.chip,.nb{text-align:center}
   .inslide h3{font-size:22px}
   .insub{font-size:14px}
   .inphone{width:auto;height:min(520px,calc(100vh - 350px))}
-  .inphone.web{justify-self:end;width:100%;height:auto;max-height:calc(100vh - 160px);aspect-ratio:900/800;border-width:6px;border-radius:14px}  /* 넓은 화면 캡처(900×800, 양옆 여백 없이 꽉 차게)는 웹 화면 틀 */
-  .inphone.web .intap{display:none}  /* 넓은 화면은 누르는 동그라미 없이 화면만 넘어간다(위치가 어긋나 보여서 뺌, 사용자 요청 2026-11-19) */
+  .inphone.web{justify-self:end;width:min(100%,calc((100vh - 160px) * 1.125));height:auto;aspect-ratio:900/800;border-width:6px;border-radius:14px}  /* 높이가 모자라면 폭을 줄여 비율을 지킨다(비율이 깨지면 그림이 잘려 누르는 동그라미가 어긋난다) */  /* 넓은 화면 캡처(900×800, 양옆 여백 없이 꽉 차게)는 웹 화면 틀 */
+  .inphone.web .intap{width:30px;height:30px;margin:-15px 0 0 -15px}  /* 넓은 화면도 누르는 동그라미(2026-11-19 다시 켬: 직접 찍은 캡처 좌표 + 틀 비율 유지) */
   /* 넘기기 버튼은 장면 양끝(2026-11-19): 첫 장면은 예시 화면 오른쪽에 → 만, 마지막은 글 왼쪽에 ← 만, 가운데는 둘 다. 하단은 [내 취향의 조합 찾기]만 */
   .inarrow{display:grid;place-items:center;position:absolute;top:50%;z-index:1;width:40px;height:40px;margin-top:-20px;padding:0 0 2px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:22px;line-height:1;cursor:pointer}
   .inarrow[data-d="-1"]{left:-52px}

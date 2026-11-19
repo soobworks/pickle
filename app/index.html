@@ -536,8 +536,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261119b">
-<link rel="stylesheet" href="app.css?v=20261119b">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261119c">
+<link rel="stylesheet" href="app.css?v=20261119c">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -574,7 +574,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611192142"></script>
+<script src="data.js?v=202611192150"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3441,11 +3441,12 @@ function introPlayer(ph) {  // 캡처를 한 장씩 보여 주고, 누르는 곳
   const show = n => { const cut = !!list[n]?.same; scr.classList.toggle("cut", cut); imgs.forEach((im, j) => im.classList.toggle("on", j === n)); i = n; };
   const step = () => {
     if (!on) return; const f = list[i];
-    if (f.tap) { tap.style.left = f.tap.x + "%"; tap.style.top = f.tap.y + "%"; tap.classList.add("show"); t = setTimeout(() => { tap.classList.add("go"); t = setTimeout(() => { tap.classList.remove("go", "show"); show(i + 1); t = setTimeout(step, 1300); }, 650); }, 900); }
-    else if (i < list.length - 1) t = setTimeout(() => { show(i + 1); t = setTimeout(step, 1300); }, 1500);
-    else t = setTimeout(() => { show(0); t = setTimeout(step, 1300); }, 2600);  // 마지막(결과) 화면은 조금 더 보여 주고 처음부터
+    // 한 동작 = 1초(2026-11-19 사용자 요청: 버튼 하나 누르는 데 오래 걸려 답답함). 누르기: 동그라미가 버튼 위로 → 0.45초 뒤 눌림 → 0.25초 뒤 다음 화면 → 0.3초 쉬고 다음 동작
+    if (f.tap) { tap.style.left = f.tap.x + "%"; tap.style.top = f.tap.y + "%"; tap.classList.add("show"); t = setTimeout(() => { tap.classList.add("go"); t = setTimeout(() => { tap.classList.remove("go", "show"); show(i + 1); t = setTimeout(step, 300); }, 250); }, 450); }
+    else if (i < list.length - 1) t = setTimeout(() => { show(i + 1); t = setTimeout(step, 300); }, 700);
+    else t = setTimeout(() => { show(0); t = setTimeout(step, 300); }, 1500);  // 마지막(결과) 화면은 조금 더(1.5초) 보여 주고 처음부터
   };
-  return {play() { if (on) return; on = true; t = setTimeout(step, 600); }, stop() { on = false; clearTimeout(t); tap.classList.remove("go", "show"); }};
+  return {play() { if (on) return; on = true; t = setTimeout(step, 400); }, stop() { on = false; clearTimeout(t); tap.classList.remove("go", "show"); }};
 }
 function introStart() {
   const box = $("#intro"); if (!box || box.hidden) return;
