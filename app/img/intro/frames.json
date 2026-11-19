@@ -1,74 +1,85 @@
 {
  "taste": [
   {
+   "src": "taste_3.webp"
+  },
+  {
    "src": "taste_1.webp",
    "tap": {
-    "x": 16.9,
-    "y": 49.2
+    "x": 22.4,
+    "y": 49.9
    }
   },
   {
    "src": "taste_2.webp",
+   "same": true
+  },
+  {
+   "src": "taste_4.webp"
+  }
+ ],
+ "actor": [
+  {
+   "src": "actor_1.webp",
    "tap": {
-    "x": 22.4,
+    "x": 50,
+    "y": 20.9
+   }
+  },
+  {
+   "src": "actor_2.webp",
+   "tap": {
+    "x": 23.6,
+    "y": 51.9
+   }
+  },
+  {
+   "src": "actor_3.webp",
+   "tap": {
+    "x": 23.6,
     "y": 50
    }
   },
   {
-   "src": "taste_3.webp",
-   "tap": {
-    "x": 50,
-    "y": 77.2
-   }
+   "src": "actor_4.webp",
+   "same": true
   },
   {
-   "src": "taste_4.webp"
-  },
-  {
-   "src": "taste_5.webp"
+   "src": "actor_5.webp"
   }
  ],
- "filter": [
+ "date": [
   {
-   "src": "filter_1.webp",
+   "src": "date_1.webp",
    "tap": {
-    "x": 66.2,
-    "y": 29.8
+    "x": 85.6,
+    "y": 54.2
    }
   },
   {
-   "src": "filter_2.webp",
+   "src": "date_2.webp",
    "tap": {
-    "x": 44.1,
-    "y": 29.8
-   }
+    "x": 14.4,
+    "y": 68.5
+   },
+   "same": true
   },
   {
-   "src": "filter_3.webp"
-  },
-  {
-   "src": "filter_4.webp",
+   "src": "date_3.webp",
    "tap": {
     "x": 50,
-    "y": 77.9
+    "y": 84.1
    }
   },
   {
-   "src": "filter_5.webp",
-   "tap": {
-    "x": 29.1,
-    "y": 82
-   }
-  },
-  {
-   "src": "filter_6.webp"
+   "src": "date_4.webp"
   }
  ],
  "log": [
   {
    "src": "log_1.webp",
    "tap": {
-    "x": 36.9,
+    "x": 50,
     "y": 52.7
    }
   },
@@ -82,26 +93,21 @@
   {
    "src": "log_3.webp",
    "tap": {
-    "x": 50,
-    "y": 34.2
-   }
-  },
-  {
-   "src": "log_4.webp",
-   "tap": {
     "x": 29.1,
     "y": 37.8
    }
   },
   {
-   "src": "log_5.webp",
+   "src": "log_4.webp",
    "tap": {
     "x": 18.7,
-    "y": 49.9
-   }
+    "y": 63.3
+   },
+   "same": true
   },
   {
-   "src": "log_6.webp"
+   "src": "log_5.webp",
+   "same": true
   }
  ]
 }

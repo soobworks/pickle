@@ -574,7 +574,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611190055"></script>
+<script src="data.js?v=202611192111"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3410,7 +3410,9 @@ const duelMeCard = () => { const ws = D.works.filter(w => w.hasSchedule && duelS
 const INTRO_KEY = "pickle_intro";
 const INTRO = [
   {k: "taste", tag: "취향 맞춤 추천", h: "취향 카드 한 장이면<br>딱 맞는 캐스팅 조합이 나와요", p: "좋아하는 배우와 공연에서 기대하는 점을 고르면, 배역 전체가 어울리는 조합을 골라 드려요."},
-  {k: "filter", tag: "빠른 회차 고르기", h: "보고 싶은 배우, 피하고 싶은 배우만<br>누르면 회차가 바로 좁혀져요", p: "고른 조합이 나오는 날만 달력에 남아요. 마음에 드는 날은 내 티켓에 담아 두세요."},
+  // 2026-11-19 사용자 요청: 예전 2번(빠른 회차 고르기)을 배우 먼저·날짜 먼저 둘로 나눔. 둘 다 '조건만 주면 회차가 바로 좁혀진다'를 강조
+  {k: "actor", tag: "배우로 빠르게 고르기", h: "배역별 노래·연기 영상을 보고<br>보고 싶은 배우만 고르면 돼요", p: "보고 싶은 배우와 피하고 싶은 배우만 누르면, 맞는 조합과 회차가 바로 좁혀져요."},
+  {k: "date", tag: "날짜로 빠르게 고르기", h: "갈 수 있는 날짜만 고르면<br>내 일정에 맞는 조합이 나와요", p: "볼 수 있는 기간을 먼저 고르면, 그 안에서 취향에 맞는 조합과 회차만 바로 추려 드려요."},
   {k: "log", tag: "관극 기록", h: "본 공연을 기록할수록<br>추천이 내 취향에 가까워져요", p: "본 공연과 조합을 캘린더에 기록하고 좋았는지 표시해 두세요."},
 ];
 const introSeen = () => { try { return !!localStorage.getItem(INTRO_KEY); } catch (e) { return true; } };
@@ -3418,7 +3420,7 @@ const introDue = (S, seen) => !seen && !hasTaste(S.prefs) && !(S.plans || []).le
 const INTRO_X = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 const introHTML = () => `<div class="inbox"><button type="button" class="inx" data-act="introClose" aria-label="서비스 소개 닫기">${INTRO_X}</button>
   <div class="inhead"><p class="eyebrow">PICKLE 서비스 소개</p><h2 id="introtitle">어떤 캐스팅 조합으로 볼지,<br>PICKLE이 같이 골라 드려요</h2></div>
-  <div class="inview"><div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
+  <div class="inview"><div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"><img src="img/intro/${introWide() ? "w_" : ""}${x.k}_1.webp" alt="" class="on" draggable="false"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
   <button type="button" class="inarrow" data-act="introGo" data-d="-1" aria-label="이전 소개" hidden>‹</button><button type="button" class="inarrow" data-act="introGo" data-d="1" aria-label="다음 소개">›</button></div>
   <div class="inend"><button type="button" class="btn" data-act="introClose">내 취향의 조합 찾기</button></div></div>`;
 // 캡처: 휴대폰 화면(frames.json)과 넓은 화면(900px~, frames_web.json, 2026-11-19 사용자 요청: 글과 예시 화면을 반씩). 연 순간의 화면 폭으로 고른다
@@ -3427,13 +3429,15 @@ const introWide = () => !!window.matchMedia?.("(min-width:900px)").matches;
 const introPlayers = new Map();  // 휴대폰 화면마다 자동 재생 상태
 const reduceMotion = () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 function introPlayer(ph) {  // 캡처를 한 장씩 보여 주고, 누르는 곳이 있으면 손가락 표시를 띄운 뒤 다음 장으로. 끝까지 가면 처음부터
-  const list = INTRO_FRAMES[ph.classList.contains("web") ? "w" : "m"]?.[ph.dataset.k] || [], scr = ph.querySelector(".inscreen"), tap = ph.querySelector(".intap");
+  const web = ph.classList.contains("web"), data = INTRO_FRAMES[web ? "w" : "m"]?.[ph.dataset.k], list = (Array.isArray(data) ? data : data?.frames) || [], scr = ph.querySelector(".inscreen"), tap = ph.querySelector(".intap");
   if (!list.length || !scr) return null;
-  scr.innerHTML = list.map((f, i) => `<img src="img/intro/${esc(f.src)}" alt="" ${i ? `loading="lazy" ` : ""}class="${i ? "" : "on"}" draggable="false">`).join("");
+  if (web && data?.size) ph.style.aspectRatio = data.size.join(" / ");  // 넓은 화면: 사용자 캡처를 얹은 판 크기(장면마다 다름)
+  scr.innerHTML = list.map((f, i) => `<img src="img/intro/${esc(f.src)}" alt="" class="${i ? "" : "on"}" draggable="false">`).join("");
   const imgs = [...scr.querySelectorAll("img")];
   if (reduceMotion()) { imgs.forEach((im, i) => im.classList.toggle("on", i === imgs.length - 1)); return {play() {}, stop() {}}; }  // 움직임 줄이기: 마지막(결과) 화면만
   let i = 0, t = null, on = false;
-  const show = n => { imgs.forEach((im, j) => { im.classList.toggle("on", j === n); im.classList.toggle("past", j < n); }); i = n; };
+  // 옆으로 미는 전환 없음(2026-11-19). 같은 화면에서 버튼만 바뀐 장(same)은 전환 없이 그 자리에서 바로 바꾸고, 다른 화면은 짧게 겹쳐 바꾼다
+  const show = n => { const cut = !!list[n]?.same; scr.classList.toggle("cut", cut); imgs.forEach((im, j) => im.classList.toggle("on", j === n)); i = n; };
   const step = () => {
     if (!on) return; const f = list[i];
     if (f.tap) { tap.style.left = f.tap.x + "%"; tap.style.top = f.tap.y + "%"; tap.classList.add("show"); t = setTimeout(() => { tap.classList.add("go"); t = setTimeout(() => { tap.classList.remove("go", "show"); show(i + 1); t = setTimeout(step, 1300); }, 650); }, 900); }

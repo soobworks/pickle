@@ -789,9 +789,9 @@ button,.btn,.chip,.nb{text-align:center}
 .insub{margin:0;color:var(--muted);font-size:14.5px;line-height:1.6;word-break:keep-all}
 .inphone{position:relative;justify-self:center;width:min(72vw,280px);aspect-ratio:390/844;border-radius:32px;border:7px solid #2A3038;background:#0B0E12;overflow:hidden}
 .inscreen,.inscreen img{position:absolute;inset:0}
-.inscreen img{width:100%;height:100%;object-fit:cover;opacity:0;transform:translateX(16%);transition:opacity .45s ease,transform .45s ease;user-select:none}
-.inscreen img.on{opacity:1;transform:none}
-.inscreen img.past{transform:translateX(-16%)}
+.inscreen img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .35s ease;user-select:none}  /* 옆으로 밀지 않고 겹쳐 바꾼다(2026-11-19) */
+.inscreen img.on{opacity:1}
+.inscreen.cut img{transition:none}  /* 같은 화면에서 버튼만 바뀐 장: 전환 없이 바로 */
 .intap{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:rgba(255,255,255,.32);border:2px solid rgba(255,255,255,.92);opacity:0;transform:scale(1.5);transition:opacity .25s ease,transform .25s ease;pointer-events:none}
 .intap.show{opacity:1;transform:scale(1)}
 .intap::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid rgba(255,255,255,.8);opacity:0}
