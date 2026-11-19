@@ -536,8 +536,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261119f">
-<link rel="stylesheet" href="app.css?v=20261119f">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261119g">
+<link rel="stylesheet" href="app.css?v=20261119g">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611192308"></script>
+<script src="data.js?v=202611192324"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3465,6 +3465,7 @@ function openIntro() {
   document.documentElement.classList.add("lock");
   box.querySelector(".inx")?.focus?.({preventScroll: true});
   box.querySelector("#intrack")?.addEventListener?.("scroll", introDots, {passive: true});
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(introAlign);
   const mode = introWide() ? "w" : "m";
   box.querySelectorAll(".inphone").forEach(ph => ph.classList.toggle("web", mode === "w"));  // 넓은 화면은 휴대폰 틀 대신 웹 화면 틀
   if (INTRO_FRAMES[mode]) introStart();
@@ -3476,6 +3477,16 @@ function closeIntro() {
   box.hidden = true; box.innerHTML = ""; if (!SHEET) document.documentElement.classList.remove("lock");
   try { localStorage.setItem(INTRO_KEY, today()); } catch (e) { /* 저장이 막힌 브라우저: 이번만 닫힌다 */ }
 }
+// 넓은 화면: 가운데로 모인 글자 뭉치·예시 화면에 맞춰 위쪽 제목과 양끝 넘기기 버튼 자리를 잰다(2026-11-19). 크기가 바뀌면 다시
+function introAlign() {
+  const box = document.querySelector("#intro .inbox"), view = box?.querySelector?.(".inview"), sl = view?.querySelector?.(".inslide"), tx = sl?.querySelector?.(".intext"), ph = sl?.querySelector?.(".inphone");
+  if (!box?.style?.setProperty || !tx || !ph || !introWide()) return;
+  const b = box.getBoundingClientRect(), v = view.getBoundingClientRect(), s = sl.getBoundingClientRect(), t = tx.getBoundingClientRect(), p = ph.getBoundingClientRect();
+  box.style.setProperty("--in-tx", Math.round(t.left - s.left + v.left - b.left) + "px");
+  box.style.setProperty("--in-al", Math.round(t.left - s.left - 52) + "px");
+  box.style.setProperty("--in-ar", Math.round(p.right - s.left + 12) + "px");
+}
+if (typeof window !== "undefined" && window.addEventListener) window.addEventListener("resize", () => { if (!document.querySelector("#intro")?.hidden) introAlign(); });
 function introDots() {  // 넓은 화면: 옆으로 넘긴 위치에 맞춰 양끝 버튼(첫 장면은 오른쪽만, 마지막은 왼쪽만)
   const tr = $("#intrack"); if (!tr || !tr.clientWidth) return; const n = Math.round(tr.scrollLeft / tr.clientWidth);
   const prev = document.querySelector('#intro .inarrow[data-d="-1"]'), next = document.querySelector('#intro .inarrow[data-d="1"]');

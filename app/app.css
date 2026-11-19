@@ -806,21 +806,24 @@ button,.btn,.chip,.nb{text-align:center}
   /* 2026-11-19: 글:예시 화면 = 3:7. 제목은 왼쪽 글 칸 위에 얹고, 예시 화면은 상자 맨 위(제목 오른쪽)부터 크게 */
   .inbox{width:min(1280px,calc(100% - 48px));height:auto;max-height:calc(100vh - 40px);overflow:hidden;display:grid;gap:14px;padding:28px 60px 22px;border:1px solid var(--line);border-radius:24px}
   .inx{position:absolute;top:12px;right:12px}
-  .inhead{position:absolute;z-index:1;top:28px;left:60px;width:calc((100% - 160px) * .3)}
+  .inhead{position:absolute;z-index:1;top:28px;left:var(--in-tx,60px);width:340px}  /* 왼쪽 = 글자 뭉치 왼쪽(introAlign 이 잰다) */
   .inhead h2{font-size:19px}
   .intrack{display:flex;gap:0;margin-top:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
   .intrack::-webkit-scrollbar{display:none}
-  .inslide{flex:0 0 100%;scroll-snap-align:start;grid-template-columns:minmax(0,3fr) minmax(0,7fr);align-items:center;gap:40px;padding:0}
+  /* 2026-11-19 사용자 요청: 크기는 그대로, 글자 뭉치와 예시 화면을 한 묶음으로 가운데에(낮은 화면에서 예시 화면이 줄면 오른쪽 끝에 붙어 사이가 크게 벌어졌다) */
+  .inslide{flex:0 0 100%;scroll-snap-align:start;grid-template-columns:340px auto;justify-content:center;align-items:center;gap:48px;padding:0}
+  .inbox{grid-template-columns:minmax(0,1fr)}
+  .inview,.intrack{min-width:0}  /* 슬라이드 최소 폭이 상자 칸을 넓히지 않게 */
   .intext{padding-top:96px}  /* 위에 얹은 제목과 겹치지 않게 */
   .inslide h3{font-size:22px}
   .insub{font-size:14px}
   .inphone{width:auto;height:min(520px,calc(100vh - 350px))}
-  .inphone.web{justify-self:end;width:min(100%,calc((100vh - 160px) * 1.125));height:auto;aspect-ratio:900/800;border-width:6px;border-radius:14px}  /* 높이가 모자라면 폭을 줄여 비율을 지킨다(비율이 깨지면 그림이 잘려 누르는 동그라미가 어긋난다) */  /* 넓은 화면 캡처(900×800, 양옆 여백 없이 꽉 차게)는 웹 화면 틀 */
+  .inphone.web{justify-self:start;width:min(calc(min(1280px, 100vw - 48px) - 508px),calc((100vh - 160px) * 1.125));height:auto;aspect-ratio:900/800;border-width:6px;border-radius:14px}  /* 높이가 모자라면 폭을 줄여 비율을 지킨다(비율이 깨지면 그림이 잘려 누르는 동그라미가 어긋난다) */  /* 넓은 화면 캡처(900×800, 양옆 여백 없이 꽉 차게)는 웹 화면 틀 */
   .inphone.web .intap{width:30px;height:30px;margin:-15px 0 0 -15px}  /* 넓은 화면도 누르는 동그라미(2026-11-19 다시 켬: 직접 찍은 캡처 좌표 + 틀 비율 유지) */
   /* 넘기기 버튼은 장면 양끝(2026-11-19): 첫 장면은 예시 화면 오른쪽에 → 만, 마지막은 글 왼쪽에 ← 만, 가운데는 둘 다. 하단은 [내 취향의 조합 찾기]만 */
   .inarrow{display:grid;place-items:center;position:absolute;top:50%;z-index:1;width:40px;height:40px;margin-top:-20px;padding:0 0 2px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:22px;line-height:1;cursor:pointer}
-  .inarrow[data-d="-1"]{left:-52px}
-  .inarrow[data-d="1"]{right:-52px}
+  .inarrow[data-d="-1"]{left:var(--in-al,-52px)}  /* 글자 뭉치 바로 왼쪽 */
+  .inarrow[data-d="1"]{left:var(--in-ar,auto);right:auto}  /* 예시 화면 바로 오른쪽 */
   .inarrow[hidden]{display:none}
   .inend{justify-self:center;width:280px;margin-top:0}
 }
