@@ -536,8 +536,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261118a">
-<link rel="stylesheet" href="app.css?v=20261118a">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261119b">
+<link rel="stylesheet" href="app.css?v=20261119b">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -574,7 +574,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611192111"></script>
+<script src="data.js?v=202611192138"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3420,11 +3420,12 @@ const introDue = (S, seen) => !seen && !hasTaste(S.prefs) && !(S.plans || []).le
 const INTRO_X = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 const introHTML = () => `<div class="inbox"><button type="button" class="inx" data-act="introClose" aria-label="서비스 소개 닫기">${INTRO_X}</button>
   <div class="inhead"><p class="eyebrow">PICKLE 서비스 소개</p><h2 id="introtitle">어떤 캐스팅 조합으로 볼지,<br>PICKLE이 같이 골라 드려요</h2></div>
-  <div class="inview"><div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"><img src="img/intro/${introWide() ? "w_" : ""}${x.k}_1.webp" alt="" class="on" draggable="false"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
+  <div class="inview"><div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"><img src="img/intro/${introWide() ? "w_" : ""}${x.k}_1.webp${introV()}" alt="" class="on" draggable="false"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
   <button type="button" class="inarrow" data-act="introGo" data-d="-1" aria-label="이전 소개" hidden>‹</button><button type="button" class="inarrow" data-act="introGo" data-d="1" aria-label="다음 소개">›</button></div>
   <div class="inend"><button type="button" class="btn" data-act="introClose">내 취향의 조합 찾기</button></div></div>`;
 // 캡처: 휴대폰 화면(frames.json)과 넓은 화면(900px~, frames_web.json, 2026-11-19 사용자 요청: 글과 예시 화면을 반씩). 연 순간의 화면 폭으로 고른다
 let INTRO_FRAMES = {}, INTRO_IO = null;
+const introV = () => { const v = (document.querySelector('script[src*="data.js?v="]')?.getAttribute?.("src") || "").split("v=")[1]; return v ? "?v=" + v : ""; };  // 배포마다 바뀌는 번호를 붙여 예전 캡처·목록을 기억하지 않게(2026-11-19)
 const introWide = () => !!window.matchMedia?.("(min-width:900px)").matches;
 const introPlayers = new Map();  // 휴대폰 화면마다 자동 재생 상태
 const reduceMotion = () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -3432,7 +3433,7 @@ function introPlayer(ph) {  // 캡처를 한 장씩 보여 주고, 누르는 곳
   const web = ph.classList.contains("web"), data = INTRO_FRAMES[web ? "w" : "m"]?.[ph.dataset.k], list = (Array.isArray(data) ? data : data?.frames) || [], scr = ph.querySelector(".inscreen"), tap = ph.querySelector(".intap");
   if (!list.length || !scr) return null;
   if (web && data?.size) ph.style.aspectRatio = data.size.join(" / ");  // 넓은 화면: 사용자 캡처를 얹은 판 크기(장면마다 다름)
-  scr.innerHTML = list.map((f, i) => `<img src="img/intro/${esc(f.src)}" alt="" class="${i ? "" : "on"}" draggable="false">`).join("");
+  scr.innerHTML = list.map((f, i) => `<img src="img/intro/${esc(f.src)}${introV()}" alt="" class="${i ? "" : "on"}" draggable="false">`).join("");
   const imgs = [...scr.querySelectorAll("img")];
   if (reduceMotion()) { imgs.forEach((im, i) => im.classList.toggle("on", i === imgs.length - 1)); return {play() {}, stop() {}}; }  // 움직임 줄이기: 마지막(결과) 화면만
   let i = 0, t = null, on = false;
@@ -3463,7 +3464,7 @@ function openIntro() {
   const mode = introWide() ? "w" : "m";
   box.querySelectorAll(".inphone").forEach(ph => ph.classList.toggle("web", mode === "w"));  // 넓은 화면은 휴대폰 틀 대신 웹 화면 틀
   if (INTRO_FRAMES[mode]) introStart();
-  else if (typeof fetch === "function") fetch(mode === "w" ? "img/intro/frames_web.json" : "img/intro/frames.json").then(r => r.ok ? r.json() : null).then(j => { INTRO_FRAMES[mode] = j || {}; introStart(); }).catch(() => {});  // 캡처가 없어도 글은 그대로 보인다
+  else if (typeof fetch === "function") fetch((mode === "w" ? "img/intro/frames_web.json" : "img/intro/frames.json") + introV()).then(r => r.ok ? r.json() : null).then(j => { INTRO_FRAMES[mode] = j || {}; introStart(); }).catch(() => {});  // 캡처가 없어도 글은 그대로 보인다
 }
 function closeIntro() {
   const box = $("#intro"); if (!box || box.hidden) return;
