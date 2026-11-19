@@ -6,16 +6,32 @@
   {
    "src": "taste_2.webp",
    "tap": {
-    "x": 22.4,
-    "y": 49.9
+    "x": 16.9,
+    "y": 29
    }
   },
   {
    "src": "taste_3.webp",
+   "tap": {
+    "x": 22.4,
+    "y": 49.9
+   },
    "same": true
   },
   {
-   "src": "taste_4.webp"
+   "src": "taste_4.webp",
+   "tap": {
+    "x": 24,
+    "y": 60.4
+   },
+   "same": true
+  },
+  {
+   "src": "taste_5.webp",
+   "same": true
+  },
+  {
+   "src": "taste_6.webp"
   }
  ],
  "actor": [
