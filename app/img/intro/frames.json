@@ -14,15 +14,14 @@
    "src": "taste_3.webp",
    "tap": {
     "x": 22.4,
-    "y": 49.9
-   },
-   "same": true
+    "y": 70.1
+   }
   },
   {
    "src": "taste_4.webp",
    "tap": {
     "x": 24,
-    "y": 60.4
+    "y": 80.5
    },
    "same": true
   },
@@ -123,6 +122,14 @@
   },
   {
    "src": "log_5.webp",
+   "tap": {
+    "x": 52.5,
+    "y": 72.1
+   },
+   "same": true
+  },
+  {
+   "src": "log_6.webp",
    "same": true
   }
  ]

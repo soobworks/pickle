@@ -123,6 +123,14 @@
   },
   {
    "src": "w_log_5.webp",
+   "tap": {
+    "x": 24.1,
+    "y": 76.3
+   },
+   "same": true
+  },
+  {
+   "src": "w_log_6.webp",
    "same": true
   }
  ]

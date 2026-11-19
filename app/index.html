@@ -574,7 +574,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611192205"></script>
+<script src="data.js?v=202611192216"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3441,10 +3441,10 @@ function introPlayer(ph) {  // 캡처를 한 장씩 보여 주고, 누르는 곳
   const show = n => { const cut = !!list[n]?.same; scr.classList.toggle("cut", cut); imgs.forEach((im, j) => im.classList.toggle("on", j === n)); i = n; };
   const step = () => {
     if (!on) return; const f = list[i];
-    // 모든 동작 1.5초 간격(2026-11-19 사용자 요청). 누르기: 동그라미가 버튼 위로 → 0.7초 뒤 눌림 → 0.3초 뒤 다음 화면 → 0.5초 쉬고 다음 동작. 누르지 않는 장도 1.5초, 마지막 화면도 1.5초
+    // 누르는 동작 1.5초, 누르지 않고 넘어가는 장·마지막 화면 2초(2026-11-19 사용자 요청). 누르기: 동그라미가 버튼 위로 → 0.7초 뒤 눌림 → 0.3초 뒤 다음 화면 → 0.5초 쉬고 다음 동작
     if (f.tap) { tap.style.left = f.tap.x + "%"; tap.style.top = f.tap.y + "%"; tap.classList.add("show"); t = setTimeout(() => { tap.classList.add("go"); t = setTimeout(() => { tap.classList.remove("go", "show"); show(i + 1); t = setTimeout(step, 500); }, 300); }, 700); }
-    else if (i < list.length - 1) t = setTimeout(() => { show(i + 1); t = setTimeout(step, 500); }, 1000);
-    else t = setTimeout(() => { show(0); t = setTimeout(step, 500); }, 1000);
+    else if (i < list.length - 1) t = setTimeout(() => { show(i + 1); t = setTimeout(step, 500); }, 1500);
+    else t = setTimeout(() => { show(0); t = setTimeout(step, 500); }, 1500);
   };
   return {play() { if (on) return; on = true; t = setTimeout(step, 400); }, stop() { on = false; clearTimeout(t); tap.classList.remove("go", "show"); }};
 }
