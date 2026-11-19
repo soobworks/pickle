@@ -536,8 +536,8 @@ a.wcard:hover{border-color:var(--hl)}
 .favrow .tiny{font-size:11px;word-break:keep-all}
 @media (min-width:600px){.favrow{gap:12px}.favrow>.card{padding:18px 16px}}
 </style>
-<link rel="stylesheet" href="theme.css?v=20261119c">
-<link rel="stylesheet" href="app.css?v=20261119c">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
+<link rel="stylesheet" href="theme.css?v=20261119d">
+<link rel="stylesheet" href="app.css?v=20261119d">  <!-- 스타일을 고칠 때마다 theme.css·app.css 의 ?v= 숫자를 같이 올린다(브라우저가 옛 스타일을 기억하지 않게) -->
 </head>
 <body>
 <!-- 검색 로봇·화면 읽기 프로그램용 소개(2026-11-09): 앱 화면은 자바스크립트로 그려서 네이버 로봇이 잘 못 읽는다. 화면에는 보이지 않는다 -->
@@ -556,6 +556,7 @@ a.wcard:hover{border-color:var(--hl)}
       <a href="#plans" data-tab="plans">내 티켓</a>
       <a href="#me" data-tab="me">내 취향</a>
     </nav>
+    <button type="button" class="introtop" data-act="introOpen" hidden>서비스 소개 보기</button>  <!-- 넓은 화면 홈에서만: 머리줄 가운데(사용자 요청 2026-11-19) -->
     <span aria-hidden="true"></span>  <!-- 머리줄 오른쪽 빈칸(가운데 맞춤용). 명암 버튼은 판을 하나로 통일하며 뺐다(2026-10-29) -->
   </header>
   <div class="kakaobar" id="kakaobar" role="note" hidden></div>  <!-- 카카오톡 안에서 열었을 때만: 외부 브라우저로 열기 안내(2026-11-13) -->
@@ -574,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611192239"></script>
+<script src="data.js?v=202611192255"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -3442,6 +3443,8 @@ function introPlayer(ph) {  // 캡처를 한 장씩 보여 주고, 누르는 곳
   const step = () => {
     if (!on) return; const f = list[i];
     // 누르는 동작 1.5초, 누르지 않고 넘어가는 장·마지막 화면 2초(2026-11-19 사용자 요청). 누르기: 동그라미가 버튼 위로 → 0.7초 뒤 눌림 → 0.3초 뒤 다음 화면 → 0.5초 쉬고 다음 동작
+    if (f.hold && !f.held) { f.held = true; t = setTimeout(() => { if (on) step(); }, f.hold); return; }  // 이 장을 더 오래 보여 준다(hold ms, 예: 관극 캘린더 2.5초)
+    f.held = false;
     if (f.tap) { tap.style.left = f.tap.x + "%"; tap.style.top = f.tap.y + "%"; tap.classList.add("show"); t = setTimeout(() => { tap.classList.add("go"); t = setTimeout(() => { tap.classList.remove("go", "show"); show(i + 1); t = setTimeout(step, 500); }, 300); }, 700); }
     else if (i < list.length - 1) t = setTimeout(() => { show(i + 1); t = setTimeout(step, 500); }, 1500);
     else t = setTimeout(() => { show(0); t = setTimeout(step, 500); }, 2500);  // 마지막 화면은 3초(2026-11-19 사용자 요청)
@@ -3617,6 +3620,7 @@ function route() {
   const drafts = location.hash === lastHash ? NAME_INPUTS.map(id => [id, $("#" + id)?.value || ""]).filter(([, v]) => v) : [];  // 배우 이름 칸에 쓰던 글자(사용자 요청 2026-11-05: 등록된 이름을 지워도 쓰던 이름이 사라지지 않게)
   CTA = null; const view = $("#view"); view.innerHTML = (V[name] || V.home)(...args); if (name === "me") mountGsi();
   for (const [id, v] of drafts) { const el = $("#" + id); if (el && !el.value) el.value = v; } view.dataset.view = V[name] ? name : "home";
+  { const it = document.querySelector(".introtop"); if (it) it.hidden = view.dataset.view !== "home"; }  // 머리줄 [서비스 소개 보기]: 홈에서만(넓은 화면만 보이는 건 CSS)
   const cta = $("#cta"); if (CTA) { cta.hidden = false; cta.innerHTML = `<button class="btn" data-act="${CTA.act}">${esc(CTA.text)}</button>`; } else cta.hidden = true;  // 폰에서는 화면 아래 고정 버튼(넓은 화면은 덩어리 안 버튼)
   $("#back").hidden = ["home", "works", "taste", "onboard", "me"].includes(name) || (name === "plans" && !args.length);  // 캘린더 날짜 화면(#plans/날짜)에는 뒤로
   const tab = {plans: "plans", tag: "plans", review: "plans", log: "plans", ticket: "plans", me: "me", privacy: "me"}[name] || "home";

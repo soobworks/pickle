@@ -825,3 +825,7 @@ button,.btn,.chip,.nb{text-align:center}
   .inend{justify-self:center;width:280px;margin-top:0}
 }
 @media (prefers-reduced-motion:reduce){.inbox{animation:none}.inscreen img{transition:none}}
+
+/* 머리줄 [서비스 소개 보기](2026-11-19): 넓은 화면 홈에서만, 줄 가운데 */
+.introtop{display:none}
+@media (min-width:900px){.introtop:not([hidden]){display:inline-flex;align-items:center;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-height:36px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--fg);font-size:13px;font-weight:600;cursor:pointer}.introtop:hover{background:var(--soft)}.introtop:focus-visible{outline:2px solid var(--fg);outline-offset:2px}}
