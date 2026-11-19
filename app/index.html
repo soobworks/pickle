@@ -574,7 +574,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611192218"></script>
+<script src="data.js?v=202611192223"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1510,7 +1510,7 @@ V.log = (work, id) => {
   if (day && !ps.length) return `<div class="one"><div><p class="eyebrow">본 공연 기록하기 · ${esc(work)}</p><h1>언제 봤어요?</h1></div>
     <div class="card"><p class="small"><b>${ymdDot(day)} (${dowOf(day)})에는 ${esc(work)} 회차가 없어요.</b></p><p class="small muted">다른 날 봤다면 전체 회차에서 고르고, 회차표에 없는 공연이었다면 직접 기록해 주세요.</p></div>
     <a class="btn" href="#log/${esc(work)}/all">전체 회차 보기</a><a class="btn ghost" href="#log/m">직접 기록하기</a></div>`;
-  return `<div class="one"><div><p class="eyebrow">본 공연 기록하기 · ${esc(work)}</p><h1>언제 봤어요?</h1></div><p class="small muted">관람일이 지난 회차만 기록할 수 있어요.</p>${dayLine}
+  return `<div class="one"><div><p class="eyebrow">본 공연 기록하기 · ${esc(work)}</p><h1>언제 봤어요?</h1></div><p class="small muted">오늘까지의 회차를 기록할 수 있어요.</p>${dayLine}
     ${ps.map(p => `<a class="card perf" style="text-decoration:none;color:inherit" href="#review/${esc(work)}/${p.date}/${p.time}">${whenTile(p)}<p class="tiny muted">${reviewRoles(D, work, p.cast).map(r => `${esc(r)} ${esc(p.cast[r])}`).join(" · ")}</p>${reviewOf(S, work, p.date, p.time) ? `<p class="small" style="color:var(--ok)">기록 남김 · 눌러서 고치기</p>` : ""}</a>`).join("") || `<div class="card"><p class="small muted">아직 지난 회차가 없어요.</p></div>`}</div>`;
 };
 const HOURS = Array.from({length: 15}, (_, i) => String(9 + i).padStart(2, "0"));  // 오전 9시 ~ 오후 11시
@@ -2275,7 +2275,7 @@ const showReviewRecord = (V, rv, backfill = false) => {
 const fitPairs = (D, S) => (S.reviews || []).flatMap(rv => {
   const p = (D.perfs || []).find(q => q.work === rv.work && q.date === rv.date && q.time === rv.time), e = p && satOf(S, rv.work)[comboKey(D, rv.work, p.cast)];
   return e ? [{work: rv.work, date: rv.date, time: rv.time, sat: e.a, rates: Object.values(rv.rows || {}).map(r => r.rate)}] : []; });
-const logPerfs = (D, work, from) => (D.perfs || []).filter(p => p.work === work && p.date < from && !isPrivate(p)).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));  // 본 공연 기록하기: 지난 회차만(최근 순)
+const logPerfs = (D, work, from) => (D.perfs || []).filter(p => p.work === work && p.date <= from && !isPrivate(p)).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));  // 본 공연 기록하기: 오늘까지의 회차(최근 순). 오늘 본 공연도 바로 기록(사용자 요청 2026-11-19)
 // 내 티켓 캘린더(사용자 요청 2026-10-28): 담은 회차는 '미정일정'(흑백 포스터)으로 들어가고, 예매한 뒤 '관람예정'으로 바꾸면 컬러 포스터. 좌석·금액은 사용자가 적는다
 const PLAN_STATUS = {tentative: "보고싶어요", booked: "예매했어요", seen: "관람했어요"};  // 화면 이름만 바꿨다(2026-11-03, 예전 미정일정·관람예정). 저장 값은 그대로
 const planStatus = x => x?.status === "booked" || x?.status === "seen" ? x.status : "tentative";  // 상태가 없는 예전 기록은 보고싶어요
@@ -3422,7 +3422,7 @@ const introHTML = () => `<div class="inbox"><button type="button" class="inx" da
   <div class="inhead"><p class="eyebrow">PICKLE 서비스 소개</p><h2 id="introtitle">어떤 캐스팅 조합으로 볼지,<br>PICKLE이 같이 골라 드려요</h2></div>
   <div class="inview"><div class="intrack" id="intrack">${INTRO.map((x, i) => `<section class="inslide" data-i="${i}" aria-label="${i + 1} / ${INTRO.length} ${x.tag}"><div class="intext"><p class="inno"><b>${String(i + 1).padStart(2, "0")}</b> ${x.tag}</p><h3>${x.h}</h3><p class="insub">${x.p}</p></div><div class="inphone" data-k="${x.k}"><div class="inscreen"><img src="img/intro/${introWide() ? "w_" : ""}${x.k}_1.webp${introV()}" alt="" class="on" draggable="false"></div><span class="intap" aria-hidden="true"></span></div></section>`).join("")}</div>
   <button type="button" class="inarrow" data-act="introGo" data-d="-1" aria-label="이전 소개" hidden>‹</button><button type="button" class="inarrow" data-act="introGo" data-d="1" aria-label="다음 소개">›</button></div>
-  <div class="inend"><button type="button" class="btn" data-act="introClose">내 취향의 조합 찾기</button></div></div>`;
+  <div class="inend"><button type="button" class="btn" data-act="introClose" data-home="1">내 취향의 조합 찾기</button></div></div>`;
 // 캡처: 휴대폰 화면(frames.json)과 넓은 화면(900px~, frames_web.json, 2026-11-19 사용자 요청: 글과 예시 화면을 반씩). 연 순간의 화면 폭으로 고른다
 let INTRO_FRAMES = {}, INTRO_IO = null;
 const introV = () => { const v = (document.querySelector('script[src*="data.js?v="]')?.getAttribute?.("src") || "").split("v=")[1]; return v ? "?v=" + v : ""; };  // 배포마다 바뀌는 번호를 붙여 예전 캡처·목록을 기억하지 않게(2026-11-19)
@@ -3444,7 +3444,7 @@ function introPlayer(ph) {  // 캡처를 한 장씩 보여 주고, 누르는 곳
     // 누르는 동작 1.5초, 누르지 않고 넘어가는 장·마지막 화면 2초(2026-11-19 사용자 요청). 누르기: 동그라미가 버튼 위로 → 0.7초 뒤 눌림 → 0.3초 뒤 다음 화면 → 0.5초 쉬고 다음 동작
     if (f.tap) { tap.style.left = f.tap.x + "%"; tap.style.top = f.tap.y + "%"; tap.classList.add("show"); t = setTimeout(() => { tap.classList.add("go"); t = setTimeout(() => { tap.classList.remove("go", "show"); show(i + 1); t = setTimeout(step, 500); }, 300); }, 700); }
     else if (i < list.length - 1) t = setTimeout(() => { show(i + 1); t = setTimeout(step, 500); }, 1500);
-    else t = setTimeout(() => { show(0); t = setTimeout(step, 500); }, 1500);
+    else t = setTimeout(() => { show(0); t = setTimeout(step, 500); }, 2500);  // 마지막 화면은 3초(2026-11-19 사용자 요청)
   };
   return {play() { if (on) return; on = true; t = setTimeout(step, 400); }, stop() { on = false; clearTimeout(t); tap.classList.remove("go", "show"); }};
 }
@@ -3828,7 +3828,7 @@ document.addEventListener("click", e => {
     case "toSide": $("#view .side").scrollIntoView(); break;
     case "closeSheet": closeSheet(); break;
     case "introOpen": openIntro(); break;  // '내 취향'의 [서비스 소개 보기]
-    case "introClose": closeIntro(); break;
+    case "introClose": closeIntro(); if (d.home) { if (location.hash === "#home") route(); else location.hash = "#home"; window.scrollTo(0, 0); } break;  // [내 취향의 조합 찾기]: 취향 카드가 보이는 홈으로(사용자 요청 2026-11-19). ✕ 는 보던 화면 그대로
     case "introGo": introGo(d); break;
     case "kakaoOpen": {  // 카카오톡 → 외부 브라우저로 지금 화면 열기. 동기화가 켜져 있으면 기록도 같이(일회용 번호, 4초 안에 못 만들면 기록 없이 연다)
       const next = /^(link|signIn):(google|kakao)$/.test(d.next || "") ? d.next : "", open = code => { location.href = kakaoOut(code, next); };
