@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611221620"></script>
+<script src="data.js?v=202611221649"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1838,7 +1838,7 @@ const rankNote = (D, S, work, recs, i) => {
 const SYNC_PTS = 0.3, SYNC_TAG = "배역 싱크로";
 const comboRecs = (D, S, work, from, inDates = null) => {  // inDates: 날짜 먼저 경로에서 고른 날짜(그 안의 회차로만 조합을 만든다)
   const mode = inDates ? "date" : "actor", wp = workPrefs(S, work), prefs = wp.axes, wantSync = prefs.some(p => prefT(D, p).includes(SYNC_TAG)), pw = personalWeights(S, D), hasPW = Object.keys(pw).length > 0, hide = new Set(S.proto?.hide?.[work] || []), wrong = wrongOf(S, work);
-  const ac = actorConds(D, S, work, mode), prio = wp.prio, must = ac.must, ptsOf = new Map(ac.pick.map(x => [x.a, pickPts(x)])), never = [...ac.avoid, ...ac.extra, ...(mode === "date" ? satOutNow(S, work) : [])], noTaste = !prefs.length;  // 날짜 먼저도 카드에서 '이 작품에서 빼기'로 뺀 배우는 뺀다(2026-11-22). 배우 먼저 화면 조건은 여전히 안 쓴다(2026-11-04)  // 배우 조건은 작품별 값(없으면 온보딩 기본값, 9.1절). must 는 배역과 상관없이(결정 12)  // 취향폼 1/3: '반드시 볼 배우'는 ⭐처럼, '피하고 싶은 배우'는 조연이어도 그 회차를 뺀다
+  const ac = actorConds(D, S, work, mode), prio = wp.prio, must = ac.must, ptsOf = new Map(ac.pick.map(x => [x.a, pickPts(x)])), never = [...ac.avoid, ...ac.extra], noTaste = !prefs.length;  // 배우 조건은 작품별 값(없으면 온보딩 기본값, 9.1절). must 는 배역과 상관없이(결정 12)  // 취향폼 1/3: '반드시 볼 배우'는 ⭐처럼, '피하고 싶은 배우'는 조연이어도 그 회차를 뺀다
   const seen = new Set((S.plans || []).filter(x => x.work === work && (x.tagged || x.date < from)).map(x => comboKey(D, work, x.cast)));
   const roleIdx = Object.fromEntries(unitRoles(D, work).map((r, i) => [r.role, i]));  // 화면 위쪽 배역일수록 주연(사용자 요청 2026-11-04: 배우 순위 대신 배역 순서)
   const groups = new Map();
@@ -2084,7 +2084,7 @@ const actorConds = (D, S, work, mode = "actor") => {  // mode "date": 날짜 먼
   if (mode !== "date") migratePins(D, S, work);
   const p = S.prefs || {}, here = workCastSet(D, work), must0 = mode === "date" ? [] : p.must || [], own = mode === "date" ? null : S.cal?.[work]?.ac, [bon] = favSplit(p);
   const pick = own ? own.pick : favSplit(p).flat().filter(a => here.has(a)).map(a => ({a, must: must0.includes(a) || (mode !== "date" && bon.includes(a)), src: bon.includes(a) ? "bon" : "love"}));  // 기본: 본진 배우 → 애정 배우(각각 넣은 순서). 배우 먼저에서는 이 작품에 나오는 본진이 ★ 꼭 볼 배우, 애정이 ✓ 가능하면으로 미리 선택(사용자 요청 2026-11-05). 날짜 먼저는 거르지 않는다
-  return {pick, must: pick.filter(x => x.must).map(x => x.a), maybe: pick.filter(x => !x.must).map(x => x.a), avoid: p.avoid || [], extra: own?.extra || [],
+  return {pick, must: pick.filter(x => x.must).map(x => x.a), maybe: pick.filter(x => !x.must).map(x => x.a), avoid: p.avoid || [], extra: mode === "date" ? pinsOf(S, work).avoid : own?.extra || [],  // 날짜 먼저도 이 작품에서 피할 배우는 같이 쓴다(포함 ★·✓는 따로, 2026-11-22)
     missing: must0.filter(a => !here.has(a)), edited: !!own, mode};  // missing: 이 작품에 안 나오는 '반드시 포함' 배우(거르지 않고 안내만, 결정 12)
 };
 const acEdit = (D, S, work) => { const st = ((S.cal ||= {})[work] ||= {actors: [], period: "all"}); if (!st.ac) { const c = actorConds(D, S, work); st.ac = {pick: c.pick.map(x => ({...x})), extra: [...c.extra]}; } return st.ac; };
@@ -2181,9 +2181,8 @@ const shownRecs = (D, S, work, from, inDates = null) => {  // 날짜 먼저 경�
 };
 // 배우 먼저 「확인 · 추천 조합 보기」를 누르면(사용자 요청 2026-11-22): 고정해 둔 카드 중 '별로예요'를 받았거나 지금 피하는 배우가 든 카드가 있으면 새로 고른다.
 // 카드에 답하는 동안은 그대로 두고(결정 18·41), 사용자가 조건 화면에서 다시 확인할 때만 반영한다
-const satOutNow = (S, work) => { const av = new Set(pinsOf(S, work).avoid); return (S.proto?.satOut?.[work] || []).filter(a => av.has(a)); };  // 카드에서 뺀 배우 중 아직 빼 둔 배우(배우 먼저 화면에서 풀면 날짜 먼저에서도 풀린다)
 const recStale = (D, S, work, inDates = null) => { const sh = S.proto?.shown?.[inDates ? work + "#날짜" : work]; if (!sh) return false;
-  const c = actorConds(D, S, work, inDates ? "date" : "actor"), out = new Set([...c.avoid, ...c.extra, ...(inDates ? satOutNow(S, work) : pinsOf(S, work).avoid)]);
+  const c = actorConds(D, S, work, inDates ? "date" : "actor"), out = new Set([...c.avoid, ...c.extra, ...pinsOf(S, work).avoid]);
   return sh.list.some(x => satOf(S, work)[x.key]?.a === "dislike" || Object.values(x.cast).some(a => out.has(a))); };
 // 한 카드에서 '이 작품에서 빼기'로 뺀 배우가 다른 카드(배우 먼저·날짜 먼저 모두)에도 있으면 다시 묻지 않고 같은 답을 채운다(2026-11-22):
 // 별로예요 · 누구 때문인가요 = 그 배우 · 이 작품에서 뺐어요. 이미 다른 답(마음에 들어요, 다른 이유)을 한 카드는 그대로 둔다
