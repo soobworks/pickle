@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611232113"></script>
+<script src="data.js?v=202611232122"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1240,7 +1240,7 @@ V.detail = (work, date, time) => {
         : `<p class="small muted">이 조합은 이 회차뿐이에요. 좌석이 없으면 다른 조합이나 다른 날짜를 골라 주세요.</p>`}</div>
     <div style="display:grid;gap:10px">
     ${priv ? `<button class="btn" disabled>일반 예매 불가</button>` : run.ticket ? "" : `<button class="btn" disabled>예매 링크 준비 중</button>`}
-    ${planned ? `<a class="btn" href="#saved/${planIdx(work, date, time)}">보고 싶은 조합에 담았어요 · ${run.ticket ? "예매처로 가기" : "담은 공연 보기"} →</a>` : `<button class="btn ${priv || !run.ticket ? "ghost" : ""}" data-act="plan" data-work="${esc(work)}" data-date="${date}" data-time="${time}" ${priv ? "disabled" : ""}>${priv ? "담을 수 없는 회차예요" : "보고 싶은 조합에 담기"}</button>`}
+    ${endedCombo(workOf(work), today()) ? `<a class="btn" href="#review/${esc(work)}/${date}/${time}">본 공연 기록하기</a>` : planned ? `<a class="btn" href="#saved/${planIdx(work, date, time)}">보고 싶은 조합에 담았어요 · ${run.ticket ? "예매처로 가기" : "담은 공연 보기"} →</a>` : `<button class="btn ${priv || !run.ticket ? "ghost" : ""}" data-act="plan" data-work="${esc(work)}" data-date="${date}" data-time="${time}" ${priv ? "disabled" : ""}>${priv ? "담을 수 없는 회차예요" : "보고 싶은 조합에 담기"}</button>`}
     <p class="tiny muted">담아 두면 공연 다음 날 관람 기록을 남길 수 있어요.</p>
     </div>
     </div>`;
@@ -3352,9 +3352,10 @@ const castSection = (ref, taste, want) => {
 const allCast = (work, cast) => [...leads(work, cast), ...rests(work, cast)].map(([r, a]) => `<span><b>${esc(r)}</b>${esc(a)}</span>`).join("");
 // 날짜별 회차 카드: [볼 예정에 담기] 하나(예매처 버튼은 담은 뒤 화면 #saved 에 있다). 이미 담은 회차는 그 화면으로 가는 버튼. 예매 링크가 없는 회차는 예전처럼 '예매 링크 준비 중' 안내
 const planIdx = (work, date, time) => S.plans.findIndex(x => x.work === work && x.date === date && x.time === time);
+// 끝난 조합 추천 작품(2026-11-23 사용자 결정): [보고 싶은 조합에 담기] 대신 [본 공연 기록하기] → 그 회차의 관람 기록 화면
 const sessionCard = (work, p) => { const pi = planIdx(work, p.date, p.time), run = runOf(work, p.date) || {};
   return `<div class="card perf">${whenTile(p)}<p class="small muted">${esc(run.venue || "")}</p><div class="castall">${allCast(work, p.cast)}</div>
-    <div class="acts">${pi >= 0 ? `<a class="btn" href="#saved/${pi}">보고 싶은 조합에 담았어요 · ${run.ticket ? "예매처로 가기" : "담은 공연 보기"} →</a>`
+    <div class="acts">${endedCombo(workOf(work), today()) ? `<a class="btn" href="#review/${esc(work)}/${p.date}/${p.time}">본 공연 기록하기</a>` : pi >= 0 ? `<a class="btn" href="#saved/${pi}">보고 싶은 조합에 담았어요 · ${run.ticket ? "예매처로 가기" : "담은 공연 보기"} →</a>`
       : `<button class="btn" data-act="plan" data-work="${esc(work)}" data-date="${p.date}" data-time="${p.time}">보고 싶은 조합에 담기</button>${run.ticket ? "" : `<button class="btn ghost" disabled>예매 링크 준비 중</button>`}`}</div>
     </div>`; };  // '좌석 배치도·가격 자세히' 링크는 뺐다(사용자 요청 2026-11-09)
 const datesSection = (ref, cls = "") => {  // cls: "pickcal" 이면 이 조합 고르기 뒤 캘린더(붉은 테두리·누르면 붉게)
