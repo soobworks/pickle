@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611232140"></script>
+<script src="data.js?v=202611232308"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1603,8 +1603,9 @@ const toHex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0
 const newNonce = async () => { const raw = toHex(crypto.getRandomValues(new Uint8Array(16))); return {raw, hash: toHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)))}; };
 const gsiDone = async (resp, n) => { GSI_NONCE = null;  // 쓴 번호는 버리고, 다음에 버튼을 그릴 때 새로
   if (!SYNC || !n || !resp || !resp.credential) return;
-  try { const r = await SYNC.googleToken(resp.credential, n.raw); ACC_MSG = ""; toast(r === "signIn" ? "계정에서 불러왔어요. 이 기기 기록도 합쳤어요" : "계정을 연결했어요"); }
-  catch (e) { ACC_MSG = "fail"; }
+  track("account_link", {provider: "google", mode: "gsi", how: "link", step: "start"});
+  try { const r = await SYNC.googleToken(resp.credential, n.raw); ACC_MSG = ""; track("account_link", {provider: "google", mode: "gsi", how: "link", step: r === "signIn" ? "taken" : "ok"}); toast(r === "signIn" ? "계정에서 불러왔어요. 이 기기 기록도 합쳤어요" : "계정을 연결했어요"); }
+  catch (e) { ACC_MSG = "fail"; track("account_link", {provider: "google", mode: "gsi", how: "link", step: "fail"}); }
   if (CUR && CUR.name === "me") route(); };
 // 내 데이터 카드의 #gsi 자리에 구글 버튼을 그린다(카드를 다시 그릴 때마다). 실패하면 자리에 있던 예전 버튼이 남는다
 const mountGsi = async () => { if (!gsiOn()) return;
@@ -2395,7 +2396,7 @@ const EVENTS = {
     combo: R.arr(3, R.inSet("comboTags"))}},  // 관람 후 리뷰(11.1절)를 저장할 때. 주관식 원문은 보내지 않는다
   plan_status: {req: ["work", "date", "time", "status"], shape: {work: R_WORK, run: R_RUN, date: R.date, time: R.time, cast: R_CAST, status: R.oneOf(["tentative", "booked", "seen"])}},  // 내 티켓 캘린더에서 미정일정 ↔ 관람예정을 바꿀 때(예매 전환). 좌석·금액은 보내지 않는다
   visit: {req: ["entry"], shape: {entry: R.oneOf(SCREENS), returning: R.bool, from: R.code}},  // from: 홍보 링크 꼬리표(?from=x, 2026-11-08). 정해진 모양의 짧은 코드만  // 앱을 열 때 한 번: 들어온 화면, 전에 이 기기에서 온 적이 있는지(기기 번호가 이미 있었는지)
-  screen_view: {req: ["screen"], shape: {screen: R.oneOf(SCREENS), work: R_WORK}},  // 화면을 옮길 때마다 한 줄: 화면 이름(정해 둔 목록), MVP 작품 화면이면 작품
+  screen_view: {req: ["screen"], shape: {screen: R.oneOf(SCREENS), work: R_WORK, step: R.int(1, 3)}},  // step: 취향 입력 단계(taste/1·2, 2026-11-23 단계별 이탈)  // 화면을 옮길 때마다 한 줄: 화면 이름(정해 둔 목록), MVP 작품 화면이면 작품
   // 2026-11-04 analytics: screen-stage and explicit interaction records; no raw text, IP, or timestamps.
   video_open: {req: ["work", "actor", "video"], shape: {work: R_WORK, actor: R.inSet("actors"), video: R.ytid, role: R.inSet("roles")}},
   find_path_view: {req: ["work", "path"], shape: {work: R_WORK, path: R.oneOf(["actor", "date"])}},
@@ -2414,13 +2415,19 @@ const EVENTS = {
     kopis: R.inSet("shows"), cast: R.arr(30, R.text(20)), venue: R.text(60), seat: R.text(40), price: R.int(1, 9999999), buyer: R.text(40), memo: R.text(2000), memo_cut: R.bool,
     cr: R.obj({a: R.oneOf(["like", "dislike", "unsure"]), why: R.oneOf(["actor", "combo", "reason", "skip"]), actor: R.text(20)}, ["a"]), own_poster: R.bool, deleted: R.bool}},
   // 2026-11-09 측정 보강(docs/261108_추천화면_점검.md 5장 1·4번): 추천 카드가 실제로 나왔는지, 추천을 보고 다음 단계(날짜 보기·날짜 고름)로 갔는지
-  rec_shown: {req: ["work", "path", "n"], shape: {work: R_WORK, path: R.oneOf(["show", "actor", "date"]), n: R.int(1, 20), algo: R.code,
+  rec_shown: {req: ["work", "path", "n"], shape: {work: R_WORK, path: R.oneOf(["show", "actor", "date"]), n: R.int(1, 20), algo: R.code, t: R.int(0, 86400),  // t: 앱을 연 뒤 몇 초(첫 추천까지 걸린 시간, 2026-11-23)
     // 2026-11-20 노출 기록(docs/261119_데이터_추천설계.md P0-2): 보여 준 카드(순위 순서, 3장까지)와 점수. 점수는 ×10 정수. f = 항목별(t 취향 태그 · y 배역 싱크로 · a 고른 배우 · p 내 기록 · d 비교 투표 · l 좋아요 조합)
     cards: R.arr(3, R.obj({cast: R_CAST, s: R.int(-9999, 9999), f: R.obj({t: R.int(-9999, 9999), y: R.int(-999, 999), a: R.int(-999, 999), p: R.int(-99, 99), d: R.int(-99, 99), l: R.int(-99, 99)})}, ["cast"]))}},  // 추천 카드 n장이 화면에 나옴(방문마다 화면별 한 번)
   to_dates: {req: ["work", "path"], shape: {work: R_WORK, path: R.oneOf(["show"]), rank: R.int(0, 20), algo: R.code}},  // 공연 화면 [이 조합으로 날짜 보기]. rank: 고른 조합의 추천 순위(0 = 추천 밖에서 직접 고른 조합)
   date_pick: {req: ["work", "path", "date"], shape: {work: R_WORK, path: R.oneOf(["show", "actor"]), date: R.date}},  // 조합 달력에서 공연 날짜를 고름
   // 2026-11-23 인트로(서비스 소개) 이탈 측정: 닫을 때(또는 열어 둔 채 화면을 떠날 때) 한 줄. reached = 화면에 60% 이상 보인 가장 뒤 장면(1~total), end = cta [내 취향의 조합 찾기] · x ✕·Esc · leave 열어 둔 채 떠남
   intro_view: {req: ["source", "reached", "end"], shape: {source: R.oneOf(["auto", "button"]), reached: R.int(1, 10), total: R.int(1, 10), end: R.oneOf(["cta", "x", "leave"]), secs: R.int(0, 3600), wide: R.bool}},
+  // 2026-11-23 지표 보강(docs/261119_데이터_추천설계.md 8장): 공유 · 예매처 이동 · 추천 0건 · 구글 연결 · 카톡 넘기기
+  share: {req: ["what"], shape: {what: R.oneOf(["card", "text", "save"]), via: R.oneOf(["sheet", "copy", "file"])}},  // 취향 카드 [공유하기]·[저장하기]·안드로이드 [문구·링크 보내기]. 공유 링크에는 ?from=share
+  ticket_out: {req: ["from"], shape: {from: R.oneOf(["show", "saved", "sheet"]), work: R_WORK, show: R.inSet("shows")}},  // 예매처로 이동 버튼(새 탭). show = 공연 정보 화면, saved = 내 티켓, sheet = 담은 뒤 화면
+  rec_empty: {req: ["work", "path"], shape: {work: R_WORK, path: R.oneOf(["show", "actor", "date"]), must: R.int(0, 12), avoid: R.int(0, 30)}},  // 추천 조합이 하나도 안 나온 화면(방문마다 화면별 한 번). must·avoid = 그때 건 배우 조건 수
+  account_link: {req: ["provider", "step"], shape: {provider: R.oneOf(["google", "kakao"]), mode: R.oneOf(["gsi", "redirect"]), how: R.oneOf(["link", "signIn"]), step: R.oneOf(["start", "ok", "taken", "fail", "kakao_block"])}},
+  kakao_handoff: {req: ["step"], shape: {step: R.oneOf(["out", "in_ok", "in_fail"]), data: R.bool, next: R.bool}},  // 카톡 안 → 바깥 브라우저(out: 누름, in_*: 바깥에서 기록 받기)
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const isJwt = k => /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(k);
@@ -2969,7 +2976,7 @@ const prepCardImg = () => { try { if (typeof document.querySelector !== "functio
 const CARD_FILE = "PICKLE_내취향카드.png";
 const saveCardImg = () => cardBlob().then(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = CARD_FILE; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); })  // 저장 알림(흰 토스트)은 띄우지 않는다(사용자 요청 2026-11-09)
   .catch(() => toast("이미지를 만들지 못했어요. 잠시 뒤 다시 눌러 주세요"));
-const shareInfo = () => ({url: location.origin + location.pathname, text: `나의 뮤지컬 관극 취향: ${cardLine(S.prefs || {})} #PICKLE`, title: "PICKLE 내 취향 카드"});
+const shareInfo = () => ({url: location.origin + location.pathname + "?from=share", text: `나의 뮤지컬 관극 취향: ${cardLine(S.prefs || {})} #PICKLE`, title: "PICKLE 내 취향 카드"});
 const shareCopy = () => { const {text, url} = shareInfo(); return (navigator.clipboard?.writeText ? navigator.clipboard.writeText(`${text}\n${url}`) : Promise.reject()).then(() => toast("공유 문구와 링크를 복사했어요. SNS에 붙여 넣어 주세요"), () => toast("이 브라우저에서는 공유를 쓸 수 없어요. 저장하기로 이미지를 받아 올려 주세요")); };
 const shareGo = data => navigator.share(data).catch(e => { if (e?.name !== "AbortError") shareCopy(); });
 const shareText = () => { const {title, text, url} = shareInfo(); return navigator.share ? shareGo({title, text, url}) : shareCopy(); };  // 문구·링크만(안드로이드 2단계 팝업에서도 씀)
@@ -3141,7 +3148,7 @@ const dateRecs = (w, dates, byDate, all, c, never) => {
   if (!recs.length) { const ps = dates.flatMap(d => byDate[d]), noMust = c.must.filter(a => !ps.some(p => Object.values(p.cast).includes(a))), nextOf = a => all.find(d => d > dates[dates.length - 1] && byDate[d].some(p => Object.values(p.cast).includes(a)));
     const blocker = !noMust.length && never.find(a => ps.every(p => Object.values(p.cast).some(x => never.includes(x))) && ps.some(p => Object.values(p.cast).includes(a)));
     const hints = noComboHints(D, S, work, from, dates);
-    return `<div class="one sv">${head}<div class="card nocombo"><p class="small ctr"><b>이 날짜엔 맞는 조합이 없어요.</b></p>${noMust.map(a => `<p class="small muted ctr">${esc(a)} 배우는 고른 날짜에 나오지 않아요.${nextOf(a) ? ` 다음 출연은 ${md(nextOf(a))}이에요` : ""}</p>`).join("")}${blocker ? `<p class="small muted ctr">고른 날짜의 회차에 모두 ${esc(blocker)} 배우가 나와요</p>` : ""}${noComboList(hints) || `<p class="small muted ctr">날짜를 더 고르거나 배우 조건을 바꿔 보세요.</p>`}
+    return `<div class="one sv">${head}${recEmpty(work, "date", "date")}<div class="card nocombo"><p class="small ctr"><b>이 날짜엔 맞는 조합이 없어요.</b></p>${noMust.map(a => `<p class="small muted ctr">${esc(a)} 배우는 고른 날짜에 나오지 않아요.${nextOf(a) ? ` 다음 출연은 ${md(nextOf(a))}이에요` : ""}</p>`).join("")}${blocker ? `<p class="small muted ctr">고른 날짜의 회차에 모두 ${esc(blocker)} 배우가 나와요</p>` : ""}${noComboList(hints) || `<p class="small muted ctr">날짜를 더 고르거나 배우 조건을 바꿔 보세요.</p>`}
       <div class="btnrow"><a class="btn ghost" href="#find/${W}/date">날짜 다시 고르기</a><a class="btn" href="#me/1">배우 조건 바꾸기</a></div></div></div>`; }  // 날짜 먼저는 취향 카드 기본값만 쓰니 '내 취향'에서 바꾼다
   return `<div class="one sv">${head}<section id="cast" class="sec"><div class="combochips">${satCards(work, sel, dates, true)}</div></section></div>`;
 };
@@ -3179,7 +3186,7 @@ const actorRecs = (w, c) => {
   const work = w.name, W = esc(work), from = asOf(work), recs = comboRecs(D, S, work, from), sel = curSel(D, S, work, from), hints = recs.length ? [] : noComboHints(D, S, work, from);
   const title = c.must.length ? `${c.must.map(esc).join("·")} 배우와 볼 수 있는 조합` : "추천 조합";
   return `<div class="one sv">${recHead(`${W} · 배우 먼저`, title)}${acSummary(w, c)}
-    <section id="cast" class="sec">${recs.length ? `<div class="combochips">${satCards(work, sel, null, true)}</div>` : `<div class="card nocombo"><p class="small ctr"><b>이 조건에 맞는 조합이 없어요.</b></p>${noComboList(hints) || `<p class="small muted ctr">반드시 포함을 가능하면 포함으로 바꾸거나 피하는 배우를 줄여 보세요.</p>`}<a class="btn ghost" href="#find/${W}/actor">배우 다시 고르기</a></div>`}</section></div>`;
+    <section id="cast" class="sec">${recs.length ? `<div class="combochips">${satCards(work, sel, null, true)}</div>` : `${recEmpty(work, "actor")}<div class="card nocombo"><p class="small ctr"><b>이 조건에 맞는 조합이 없어요.</b></p>${noComboList(hints) || `<p class="small muted ctr">반드시 포함을 가능하면 포함으로 바꾸거나 피하는 배우를 줄여 보세요.</p>`}<a class="btn ghost" href="#find/${W}/actor">배우 다시 고르기</a></div>`}</section></div>`;
 };
 const actorCal = (w, ref, back = `#find/${esc(w.name)}/actor/recs`) => {  // 배우 먼저·날짜 먼저 ③ 공통
   const work = w.name, W = esc(work), sel = curSel(D, S, work, asOf(work));
@@ -3199,7 +3206,7 @@ const workTaste = (w, open = false) => `<div class="one"><div><p class="eyebrow"
 const workRecs = w => {
   const work = w.name, W = esc(work), from = asOf(work), recs = comboRecs(D, S, work, from), sel = curSel(D, S, work, from), hints = recs.length ? [] : noComboHints(D, S, work, from);
   return `<div class="one sv">${recHead(W, "나에게 맞는 추천 조합")}${pinAskCards(work)}
-    <section id="cast" class="sec">${recs.length ? `<div class="combochips">${satCards(work, sel, null, "rec")}</div>` : `<div class="card nocombo"><p class="small ctr"><b>지금 취향에 맞는 조합이 없어요.</b></p>${noComboList(hints) || `<p class="small muted ctr">취향을 바꾸거나 배우 먼저 고르기로 찾아보세요.</p>`}</div>`}</section>
+    <section id="cast" class="sec">${recs.length ? `<div class="combochips">${satCards(work, sel, null, "rec")}</div>` : `${recEmpty(work, "show")}<div class="card nocombo"><p class="small ctr"><b>지금 취향에 맞는 조합이 없어요.</b></p>${noComboList(hints) || `<p class="small muted ctr">취향을 바꾸거나 배우 먼저 고르기로 찾아보세요.</p>`}</div>`}</section>
     ${recs.length ? `<div class="moreopt"><p class="moreq">더 최적의 조합을 원한다면?</p><div class="morebtns"><a class="btn" href="#find/${W}/how">배우 / 날짜 정하기</a><a class="btn" href="#find/${W}/edit"><small>이 작품에서</small> 내 취향 수정하기</a></div></div>`
       : `<div class="morebtns"><a class="btn" href="#find/${W}/how">배우 / 날짜 정하기</a><a class="btn" href="#find/${W}/edit"><small>이 작품에서</small> 내 취향 수정하기</a></div>`}
     <div class="betafoot">${betaLink(BETA_TEXT, "ghost betabtn")}</div></div>`;
@@ -3231,7 +3238,8 @@ let SHEET = null, SCROLL_TO = "", CTA = null;  // SHEET: 열려 있는 작은 �
 const ytSearch = (work, a, role = "") => `https://www.youtube.com/results?search_query=${encodeURIComponent(`뮤지컬 ${work} ${a} ${role}`.trim())}`;
 const ticketLinks = ref => {  // 예매처로 가는 버튼은 어디서나 '예매처로 이동'(링크가 여럿이면 뒤에 이름)
   const raw = ref.kind === "current" ? ref.s.tickets : runsOf(ref.key).filter(r => r.ticket).map(r => ({name: runsOf(ref.key).length > 1 ? r.label : "", url: r.ticket})), ok = raw.filter(t => /^https?:\/\//.test(t.url));
-  return ok.map(t => `<a class="btn ghost" href="${esc(t.url)}" target="_blank" rel="noopener">예매처로 이동${ok.length > 1 && t.name ? ` · ${esc(t.name)}` : ""} ↗</a>`).join("") || `<button class="btn" disabled>예매 링크 준비 중</button>`;
+  const tk = ref.kind === "current" ? `data-act="ticketOut" data-from="show" data-show="${esc(ref.key)}"` : `data-act="ticketOut" data-from="show" data-work="${esc(ref.key)}"`;  // 예매처 이동 기록(2026-11-23)
+  return ok.map(t => `<a class="btn ghost" ${tk} href="${esc(t.url)}" target="_blank" rel="noopener">예매처로 이동${ok.length > 1 && t.name ? ` · ${esc(t.name)}` : ""} ↗</a>`).join("") || `<button class="btn" disabled>예매 링크 준비 중</button>`;
 };
 // 평가 뒤 묻는 카드: '특정 배우' 칩을 골랐을 때만. 답해야 🚫/⭐ 가 걸린다
 const pinAskCards = work => pinAskOf(S, work).map(q => { const A = esc(q.actor), W = esc(work);
@@ -3294,6 +3302,11 @@ const nameEm = a => Math.ceil([...a].reduce((s, c) => s + (/[가-힣]/.test(c) ?
 const roleBreak = r => esc(r).replace(/[가-힣]{5,}/g, w => `${w.slice(0, Math.ceil(w.length / 2))}<wbr>${w.slice(Math.ceil(w.length / 2))}`);  // 공백 없는 긴 배역명이 칸보다 길 때만 가운데서 나눈다(베아트/리체). 폰 칸은 넓어서 나뉘지 않는다
 // 추천 조합 카드(docs/261027_2 10절): 카드마다 [이 조합 고르기] + '이 조합 어때요?' 만족도. 별로예요 → '누구 때문인가요?' → 배우를 고르면 이 작품의 피하고 싶은 배우에 넣을지 묻는다(동의할 때만)
 const REC_SHOWN = new Set();  // 이번 방문에서 rec_shown 을 남긴 작품|화면
+const APP_T0 = Date.now(), sinceOpen = () => Math.max(0, Math.min(86400, Math.round((Date.now() - APP_T0) / 1000)));  // 앱을 연 뒤 몇 초(시각은 안 남기고 걸린 초만)
+// 추천 0건(2026-11-23): 조합이 하나도 안 나온 화면을 방문마다 화면별 한 번. 그때 건 배우 조건 수를 같이(너무 좁혀서인지 보려고)
+const recEmpty = (work, path, mode = "actor") => { const k = "empty|" + work + "|" + path; if (REC_SHOWN.has(k)) return ""; REC_SHOWN.add(k);
+  let must = 0, avoid = 0; try { const c = actorConds(D, S, work, mode); must = Math.min(12, new Set([...(c.must || []), ...(c.pick || []).map(x => x.a)]).size); avoid = Math.min(30, new Set([...(c.avoid || []), ...(c.extra || [])]).size); } catch (e) {}
+  track("rec_empty", {work, path, must, avoid}); return ""; };
 // 노출 기록의 카드(P0-2): 보여 준 순서대로 조합과 점수(×10 정수). 지금 추천 목록에 없는 카드(예: 별로예요로 빠진 것)는 조합만
 const shownCards = (D, S, work, list, from, inDates) => { const by = new Map(comboRecs(D, S, work, from, inDates).map(r => [r.key, r])), x10 = v => Math.round((v || 0) * 10);
   return list.slice(0, 3).map(c => { const r = by.get(c.key); return r ? {cast: c.cast, s: x10(r.score), f: {t: x10(r.hit), y: x10(r.score - r.hit - r.actorPts - r.pers - r.duel - r.liked), a: x10(r.actorPts), p: x10(r.pers), d: x10(r.duel), l: x10(r.liked)}} : {cast: c.cast}; }); };
@@ -3305,7 +3318,7 @@ const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 �
   const from = asOf(work), sh = shownRecs(D, S, work, from, inDates), sat = satOf(S, work), W = esc(work), DD = inDates ? ` data-dd="1"` : "";  // 날짜 먼저 카드는 data-dd 로 구분
   if (sh.list.length && !S.proto?.recSeen) { (S.proto ||= {}).recSeen = today(); save(); }
   { const path = inDates ? "date" : nav && nav !== "rec" ? "actor" : "show", k = work + "|" + path;  // 추천 조합 화면(#find/작품, nav rec)은 옛 공연 화면 자리라 show  // 추천 카드가 실제로 나왔다(2026-11-09): 같은 방문에서 같은 화면은 한 번만
-    if (sh.list.length && !REC_SHOWN.has(k)) { REC_SHOWN.add(k); track("rec_shown", {work, path, n: Math.min(sh.list.length, 20), cards: shownCards(D, S, work, sh.list, from, inDates)}); } }  // 추천 조합을 실제로 봤다(홈 베타 후기 팝업 조건, 결정 83)
+    if (sh.list.length && !REC_SHOWN.has(k)) { REC_SHOWN.add(k); track("rec_shown", {work, path, n: Math.min(sh.list.length, 20), t: sinceOpen(), cards: shownCards(D, S, work, sh.list, from, inDates)}); } }  // 추천 조합을 실제로 봤다(홈 베타 후기 팝업 조건, 결정 83)
   const recBy = new Map(comboRecs(D, S, work, from, inDates).map(r => [r.key, r]));
   const kinds = wantKinds(D, S, work, inDates ? "date" : "actor"), pk = S.proto?.pick?.[work + (inDates ? "#날짜" : "")], recOf = sh.list.map(c => recBy.get(c.key) || null);  // kinds: 꼭 보고 싶은 배우(이름 상자 양쪽 커튼) · pk: 사용자가 [이 조합 고르기]를 눌러 고른 조합(흐름별 기억)
   const whyLines = c => { const r = recBy.get(c.key); if (!r) return "";  // 왜 맞는지 사용자 친화 문장(reasonLines): 본진·애정 배우 → 취향에 맞는 배우의 특징 → 조합 평가, 근거가 없으면 배우 조건 문장
@@ -3664,7 +3677,8 @@ const backfillReviews = () => {
 };
 // 숨긴 뒤 잠깐 뜨는 '되돌리기'(6초). 다시 보고 싶으면 추천 줄 아래 '숨긴 공연 N개 · 되돌리기'
 let undoT; const showUndo = (key, action) => { const u = $("#undo"), ref = showRef(D, key); u.innerHTML = `<span>${esc(ref?.title || "공연")} 숨겼어요</span><button type="button" data-act="recUndo" data-key="${esc(key)}">되돌리기</button>`; u.hidden = false; clearTimeout(undoT); undoT = setTimeout(() => { u.hidden = true; }, 6000); };
-const ticketSavedTap = d => { const x = S.plans[+d.i], p = x && D.perfs.find(q => q.work === x.work && q.date === x.date && q.time === x.time); if (p) track("combo_choice", comboChoiceRecord(D, S, "ticket", p, today())); };
+const ticketSavedTap = d => { const x = S.plans[+d.i], p = x && D.perfs.find(q => q.work === x.work && q.date === x.date && q.time === x.time); if (p) track("combo_choice", comboChoiceRecord(D, S, "ticket", p, today()));
+  if (x) track("ticket_out", {from: "saved", ...(x.work ? {work: x.work} : {}), ...(x.kopis ? {show: x.kopis} : {})}); };
 const vopenTap = d => {  // 영상 ID 가 있는 썸네일을 눌렀을 때: 유튜브는 새 탭으로 열리고(링크를 막지 않는다) 앱에는 모달이 떠 있어 돌아오면 바로 보인다. 답 없이 닫으면 다음에 또 뜬다(답한 영상은 고른 답·칩이 눌린 채로)
   if (!/^[\w-]{11}$/.test(d.vid || "") || !d.work || !d.a) return;
   track("video_open", {work: d.work, actor: d.a, video: d.vid, ...(d.role ? {role: d.role} : {})});
@@ -3697,7 +3711,8 @@ function route() {
   if (location.hash !== lastHash) window.scrollTo(0, 0);  // 화면이 바뀔 때만 맨 위로. 카드·칩을 눌러 다시 그릴 땐 스크롤을 유지한다
   if (location.hash !== lastHash && !window.PICKLE_NO_SCREEN) { const sc = screenOf(name, args), w = ["find", "show", "detail", "review", "log"].includes(name) && workOf(args[0]) ? args[0] : undefined;
     if (lastHash === undefined) track("visit", {entry: sc, returning: !!TRK.peekAnon(), ...(ENTRY_FROM ? {from: ENTRY_FROM} : {})});
-    track("screen_view", w ? {screen: sc, work: w} : {screen: sc});
+    const stp = (name === "taste" || name === "onboard") && /^[12]$/.test(args[0] || "1") ? +(args[0] || 1) : 0;  // 취향 입력 몇 단계 화면인지(단계별 이탈)
+    track("screen_view", {screen: sc, ...(w ? {work: w} : {}), ...(stp ? {step: stp} : {})});
     // A result-screen entry is NOT proof that the recommendation cards were read.
     if (name === "find" && workOf(args[0]) && ["actor", "date"].includes(args[1])) {
       if (!args[2]) track("find_path_view", {work: args[0], path: args[1]});
@@ -3772,9 +3787,9 @@ document.addEventListener("click", e => {
     case "rmAvoid": { const P = prefsOf(); P.avoid = (P.avoid || []).filter(a => a !== d.a); save(); route(); break; }
     case "tasteSkipAll": { prefsOf(); save(); location.hash = "#home"; break; }  // 취향을 한 번도 안 고르고 전체 목록으로
     case "meDone": { delete prefsOf().must; save(); snapTaste(); CARD_BACK = false; location.hash = "#home"; if (hasTaste(S.prefs)) toast("취향을 저장했어요"); break; }  // 내 취향 확인 버튼 → 홈 취향 카드(앞면)
-    case "tkShare": shareCard(); break;
-    case "shareText": closeSheet(); shareText(); break;  // 안드로이드 공유 2단계 팝업의 [문구·링크 보내기]  // 홈 취향 카드 공유하기: 휴대폰은 공유창(SNS 앱), 못 쓰면 문구·링크 복사
-    case "tkSave": saveCardImg(); break;  // 홈 취향 카드 저장하기: 카드 한 장을 PNG 로
+    case "tkShare": track("share", {what: "card", via: navigator.share ? "sheet" : "copy"}); shareCard(); break;
+    case "shareText": closeSheet(); track("share", {what: "text", via: navigator.share ? "sheet" : "copy"}); shareText(); break;  // 안드로이드 공유 2단계 팝업의 [문구·링크 보내기]  // 홈 취향 카드 공유하기: 휴대폰은 공유창(SNS 앱), 못 쓰면 문구·링크 복사
+    case "tkSave": track("share", {what: "save", via: "file"}); saveCardImg(); break;  // 홈 취향 카드 저장하기: 카드 한 장을 PNG 로
     case "cardFlip": flipCard(); break;  // 홈 취향 카드 뒤집기(포커스는 뒤집힌 면의 첫 버튼으로)
     case "obGo": { delete prefsOf().must; save(); snapTaste();
       track("taste_step_submit", {step: +d.to - 1, action: d.result === "next" ? "next" : "skip"});
@@ -3787,6 +3802,7 @@ document.addEventListener("click", e => {
     case "recFb": { if (!hideShow(S, d.key, d.row, d.a) || !showRef(D, d.key)) { if (S.proto?.hid?.[d.key] && !showRef(D, d.key)) delete S.proto.hid[d.key]; break; } track("rec_feedback", {show: d.key, row: d.row, action: d.a}); save(); route(); showUndo(d.key, d.a); break; }
     case "recUndo": { const e = unhideShow(S, d.key); if (!e) break; track("rec_feedback", {show: d.key, row: e.row, action: "undo"}); save(); $("#undo").hidden = true; route(); break; }
     case "ticketSaved": ticketSavedTap(d); break;
+    case "ticketOut": track("ticket_out", {from: d.from || "show", ...(d.work ? {work: d.work} : {}), ...(d.show ? {show: d.show} : {})}); break;  // 링크는 막지 않는다(새 탭)
     case "vopen": vopenTap(d); break;
     case "vreact": { if (!/^[\w-]{11}$/.test(d.vid || "")) break; const r = setVideoReaction(S, d.work, d.a, d.vid, d.r); if (r) { track("video_reaction", videoReactionRecord(d.work, d.role, d.a, d.vid, r)); save(); vAfter(`[data-act="vreact"][data-r="${r}"]`); } break; }  // 답을 바꿀 때마다 한 줄(같은 답을 또 눌러도 안 남긴다)
     case "vtrait": { if (!/^[\w-]{11}$/.test(d.vid || "")) break; const t = toggleVideoTrait(D, S, d.work, d.a, d.vid, d.t); if (t) { track("video_reaction", videoReactionRecord(d.work, d.role, d.a, d.vid, "like", t)); save(); vAfter(`[data-act="vtrait"][data-t="${d.t}"]`); } break; }  // 칩을 누를 때마다 한 줄(like + 지금 고른 특징 전체, 비면 []). 분석은 마지막 줄
@@ -3854,7 +3870,8 @@ document.addEventListener("click", e => {
     case "clearAppData": { CLR_ASK = false; try { localStorage.removeItem(KEY); } catch (e) {} location.hash = "#taste/1"; location.reload(); break; }  // 취향·볼 예정(앱 사용 데이터)은 따로 물어서만 지운다
     case "clearAppKeep": CLR_ASK = false; route(); break;
     // 내 데이터(동기화) 카드
-    case "accLink": case "accSignIn": if (IN_KAKAO && d.p === "google") { SHEET = {kind: "kakaoLogin", how: d.act === "accLink" ? "link" : "signIn", p: d.p}; renderSheet(); break; }  // 구글은 카톡 안 브라우저에서 로그인을 막는다(403 disallowed_useragent) → 바깥 브라우저로
+    case "accLink": case "accSignIn": { const how = d.act === "accLink" ? "link" : "signIn"; track("account_link", {provider: d.p, mode: "redirect", how, step: IN_KAKAO && d.p === "google" ? "kakao_block" : "start"}); }  // 구글 연결 시도·결과(2026-11-23)
+      if (IN_KAKAO && d.p === "google") { SHEET = {kind: "kakaoLogin", how: d.act === "accLink" ? "link" : "signIn", p: d.p}; renderSheet(); break; }  // 구글은 카톡 안 브라우저에서 로그인을 막는다(403 disallowed_useragent) → 바깥 브라우저로
       if (SYNC) SYNC[d.act === "accLink" ? "link" : "signIn"](d.p).catch(() => toast("계정 연결을 시작하지 못했어요. 잠시 뒤 다시 해 주세요")); break;
     case "accAsk": ACC_ASK = d.k || ""; route(); break;
     case "accMsg": ACC_MSG = ""; route(); break;
@@ -3907,7 +3924,9 @@ document.addEventListener("click", e => {
     case "introClose": if (d.home) { if (location.hash !== "#home") history.pushState(null, "", "#home"); route(); window.scrollTo(0, 0); } closeIntro(d.home ? "cta" : "x"); break;  // [내 취향의 조합 찾기]: 취향 카드가 보이는 홈으로(사용자 요청 2026-11-19). 홈을 먼저 그린 뒤 닫는다(먼저 닫으면 보던 탭이 잠깐 보였다). ✕ 는 보던 화면 그대로
     case "introGo": introGo(d); break;
     case "kakaoOpen": {  // 카카오톡 → 외부 브라우저로 지금 화면 열기. 동기화가 켜져 있으면 기록도 같이(일회용 번호, 4초 안에 못 만들면 기록 없이 연다)
-      const next = /^(link|signIn):(google|kakao)$/.test(d.next || "") ? d.next : "", open = code => { location.href = kakaoOut(code, next); };
+      const next = /^(link|signIn):(google|kakao)$/.test(d.next || "") ? d.next : "", open = code => {  // 넘기기 기록(2026-11-23)은 떠나기 전에 보낸다(최대 1초)
+        track("kakao_handoff", {step: "out", data: !!code, next: !!next}); const go = () => { location.href = kakaoOut(code, next); };
+        TRK.live() ? Promise.race([TRK.flush(), new Promise(r => setTimeout(r, 1000))]).then(go, go) : go(); };
       if (SHEET) closeSheet();
       if (!SYNC) { open(""); break; }
       toast("옮길 준비를 하고 있어요…");
@@ -4065,6 +4084,7 @@ const HANDOFF = (() => { const q = new URLSearchParams(location.search), code = 
 if (SYNC) { const q = new URLSearchParams(location.search), code = q.get("error_code") || q.get("error");
   if (code) { let a = {}; try { a = JSON.parse(localStorage.getItem(AFTER_AUTH) || "{}") || {}; } catch (e) {}
     const p = a.p || "google", taken = code === "identity_already_exists" || /already/i.test(q.get("error_description") || "");
+    if (["google", "kakao"].includes(p)) track("account_link", {provider: p, mode: "redirect", how: a.how === "signInWithOAuth" ? "signIn" : "link", step: taken ? "taken" : "fail"});
     if (taken && a.how === "linkIdentity") AUTO_SIGNIN = p; else ACC_MSG = taken ? "elsewhere:" + p : "fail";
     try { localStorage.removeItem(AFTER_AUTH); } catch (e) {} cleanAuthUrl(); history.replaceState(null, "", "#me"); } }
 if (!location.hash) history.replaceState(null, "", entryRoute(S.prefs, S));  // 처음 온 사람(취향 없음)의 첫 화면은 3단계 취향. #pick/… 같은 주소로 바로 들어온 사람은 그대로 둔다
@@ -4088,7 +4108,7 @@ if (PULL_DONE_MSG) toast(PULL_DONE_MSG);
 renderDebug();
 if (SYNC && !MOVING) SYNC.start().then(async () => {  // 화면을 먼저 그린 뒤 뒤에서 로그인·서버 판 맞추기
   if (HANDOFF && !IN_KAKAO) { const {code, next} = HANDOFF;  // 카톡 안 브라우저에서 넘어왔다: 기록 받기 → (구글 연결을 누르고 왔으면) 그 로그인으로
-    if (code) { let got = false; try { got = await SYNC.handoffIn(code); } catch (e) {} toast(got ? "카카오톡에서 쓰던 기록을 옮겨 왔어요" : "카카오톡 기록을 옮기지 못했어요. 이 브라우저에서 이어서 써 주세요"); }
+    if (code) { let got = false; try { got = await SYNC.handoffIn(code); } catch (e) {} track("kakao_handoff", {step: got ? "in_ok" : "in_fail", data: true, next: !!next}); toast(got ? "카카오톡에서 쓰던 기록을 옮겨 왔어요" : "카카오톡 기록을 옮기지 못했어요. 이 브라우저에서 이어서 써 주세요"); }
     if (next) { const [how, p] = next.split(":");
       if (p === "google" && gsiOn()) { location.hash = "#me"; route(); toast("구글 버튼을 눌러 연결을 마쳐 주세요"); return; }  // 구글 공식 버튼은 사용자가 직접 눌러야 열린다
       if (SYNC.status().anon || how === "signIn") { SYNC[how](p).catch(() => { ACC_MSG = "fail"; location.hash = "#me"; route(); }); return; } } }
@@ -4096,6 +4116,7 @@ if (SYNC && !MOVING) SYNC.start().then(async () => {  // 화면을 먼저 그린
   cleanAuthUrl();
   if (AUTO_SIGNIN) { const p = AUTO_SIGNIN; AUTO_SIGNIN = ""; toast("이미 연결된 계정이라 그 계정에서 불러올게요");
     SYNC.signIn(p).catch(() => { ACC_MSG = "elsewhere:" + p; route(); }); return; }
+  if (after && after.to && !SYNC.status().anon && ["google", "kakao"].includes(after.p)) track("account_link", {provider: after.p, mode: "redirect", how: after.how === "signInWithOAuth" ? "signIn" : "link", step: "ok"});
   if (after && after.to) { location.hash = after.to; if (!SYNC.status().anon) toast(after.how === "signInWithOAuth" ? "계정에서 불러왔어요. 이 기기 기록도 합쳤어요" : "계정을 연결했어요"); }
 });
 </script>
