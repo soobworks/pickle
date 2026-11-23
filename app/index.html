@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611232136"></script>
+<script src="data.js?v=202611232140"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2419,6 +2419,8 @@ const EVENTS = {
     cards: R.arr(3, R.obj({cast: R_CAST, s: R.int(-9999, 9999), f: R.obj({t: R.int(-9999, 9999), y: R.int(-999, 999), a: R.int(-999, 999), p: R.int(-99, 99), d: R.int(-99, 99), l: R.int(-99, 99)})}, ["cast"]))}},  // 추천 카드 n장이 화면에 나옴(방문마다 화면별 한 번)
   to_dates: {req: ["work", "path"], shape: {work: R_WORK, path: R.oneOf(["show"]), rank: R.int(0, 20), algo: R.code}},  // 공연 화면 [이 조합으로 날짜 보기]. rank: 고른 조합의 추천 순위(0 = 추천 밖에서 직접 고른 조합)
   date_pick: {req: ["work", "path", "date"], shape: {work: R_WORK, path: R.oneOf(["show", "actor"]), date: R.date}},  // 조합 달력에서 공연 날짜를 고름
+  // 2026-11-23 인트로(서비스 소개) 이탈 측정: 닫을 때(또는 열어 둔 채 화면을 떠날 때) 한 줄. reached = 화면에 60% 이상 보인 가장 뒤 장면(1~total), end = cta [내 취향의 조합 찾기] · x ✕·Esc · leave 열어 둔 채 떠남
+  intro_view: {req: ["source", "reached", "end"], shape: {source: R.oneOf(["auto", "button"]), reached: R.int(1, 10), total: R.int(1, 10), end: R.oneOf(["cta", "x", "leave"]), secs: R.int(0, 3600), wide: R.bool}},
 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const isJwt = k => /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(k);
@@ -3510,9 +3512,17 @@ function introStart() {
   INTRO_IO = new IntersectionObserver(es => es.forEach(e => { const p = introPlayers.get(e.target); if (p) e.isIntersecting ? p.play() : p.stop(); }), {root: box.querySelector(".inbox"), threshold: 0.6});  // 보이는 장면만 움직인다(옆으로 넘기면 지금 장면만)
   introPlayers.forEach((p, ph) => INTRO_IO.observe(ph));
 }
-function openIntro() {
+// 인트로 기록(2026-11-23): 처음 자동으로 떴는지·[서비스 소개 보기]로 열었는지, 어디까지 봤는지, 어떻게 닫았는지, 몇 초 봤는지. 장면은 60% 이상 보이면 본 것으로 센다
+let INTRO_LOG = null, INTRO_SIO = null;
+const introSaw = n => { if (INTRO_LOG) INTRO_LOG.max = Math.max(INTRO_LOG.max, Math.min(INTRO.length, n)); };
+const introLog = end => { const L = INTRO_LOG; if (!L) return; INTRO_LOG = null;
+  track("intro_view", {source: L.source, reached: L.max, total: INTRO.length, end, secs: Math.max(0, Math.min(3600, Math.round((Date.now() - L.t0) / 1000))), wide: L.wide}); };
+if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && INTRO_LOG) { introLog("leave"); if (TRK.live()) TRK.flush(); } });
+function openIntro(source = "button") {
   const box = $("#intro"); if (!box) return;
   box.innerHTML = introHTML(); box.hidden = false; introPlayers.clear();
+  INTRO_LOG = {source, max: 1, t0: Date.now(), wide: introWide()};
+  if (typeof IntersectionObserver !== "undefined") { INTRO_SIO?.disconnect(); INTRO_SIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) introSaw(+e.target.dataset.i + 1); }), {root: box.querySelector(".inbox"), threshold: 0.6}); box.querySelectorAll(".inslide").forEach(sl => INTRO_SIO.observe(sl)); }
   document.documentElement.classList.add("lock");
   box.querySelector(".inx")?.focus?.({preventScroll: true});
   box.querySelector("#intrack")?.addEventListener?.("scroll", introDots, {passive: true});
@@ -3522,8 +3532,9 @@ function openIntro() {
   if (INTRO_FRAMES[mode]) introStart();
   else if (typeof fetch === "function") fetch((mode === "w" ? "img/intro/frames_web.json" : "img/intro/frames.json") + introV()).then(r => r.ok ? r.json() : null).then(j => { INTRO_FRAMES[mode] = j || {}; introStart(); }).catch(() => {});  // 캡처가 없어도 글은 그대로 보인다
 }
-function closeIntro() {
+function closeIntro(end = "x") {
   const box = $("#intro"); if (!box || box.hidden) return;
+  introLog(end); INTRO_SIO?.disconnect(); INTRO_SIO = null;
   introPlayers.forEach(p => p.stop()); introPlayers.clear(); INTRO_IO?.disconnect();
   box.hidden = true; box.innerHTML = ""; if (!SHEET) document.documentElement.classList.remove("lock");
   try { localStorage.setItem(INTRO_KEY, today()); } catch (e) { /* 저장이 막힌 브라우저: 이번만 닫힌다 */ }
@@ -3546,7 +3557,7 @@ function introDots() {  // 넓은 화면: 옆으로 넘긴 위치에 맞춰 양�
 function introGo(d) {
   const tr = $("#intrack"); if (!tr) return; const w = tr.clientWidth || 1, cur = Math.round(tr.scrollLeft / w);
   const n = d.to != null ? +d.to : Math.max(0, Math.min(INTRO.length - 1, cur + +d.d));
-  tr.scrollTo({left: n * w, behavior: reduceMotion() ? "auto" : "smooth"});
+  tr.scrollTo({left: n * w, behavior: reduceMotion() ? "auto" : "smooth"}); introSaw(n + 1);
 }
 // ---------- proto: 작은 시트(볼 예정 담기·예매처로를 누르면 '이 조합, 얼마나 기대돼요?' · 두 배우 비교) ----------
 const refresh = () => SHEET ? renderSheet() : route();
@@ -3893,7 +3904,7 @@ document.addEventListener("click", e => {
     case "toSide": $("#view .side").scrollIntoView(); break;
     case "closeSheet": closeSheet(); break;
     case "introOpen": openIntro(); break;  // '내 취향'의 [서비스 소개 보기]
-    case "introClose": if (d.home) { if (location.hash !== "#home") history.pushState(null, "", "#home"); route(); window.scrollTo(0, 0); } closeIntro(); break;  // [내 취향의 조합 찾기]: 취향 카드가 보이는 홈으로(사용자 요청 2026-11-19). 홈을 먼저 그린 뒤 닫는다(먼저 닫으면 보던 탭이 잠깐 보였다). ✕ 는 보던 화면 그대로
+    case "introClose": if (d.home) { if (location.hash !== "#home") history.pushState(null, "", "#home"); route(); window.scrollTo(0, 0); } closeIntro(d.home ? "cta" : "x"); break;  // [내 취향의 조합 찾기]: 취향 카드가 보이는 홈으로(사용자 요청 2026-11-19). 홈을 먼저 그린 뒤 닫는다(먼저 닫으면 보던 탭이 잠깐 보였다). ✕ 는 보던 화면 그대로
     case "introGo": introGo(d); break;
     case "kakaoOpen": {  // 카카오톡 → 외부 브라우저로 지금 화면 열기. 동기화가 켜져 있으면 기록도 같이(일회용 번호, 4초 안에 못 만들면 기록 없이 연다)
       const next = /^(link|signIn):(google|kakao)$/.test(d.next || "") ? d.next : "", open = code => { location.href = kakaoOut(code, next); };
@@ -4070,7 +4081,7 @@ const kakaoBar = () => { const el = document.querySelector("#kakaobar"); if (!el
   el.innerHTML = `<span>카카오톡에서는 카드 공유·저장 같은 일부 기능이 잘 안 돼요</span><button type="button" class="kbtn" data-act="kakaoOpen">외부 브라우저로 열기</button><button type="button" class="kx" data-act="kakaoHide" aria-label="안내 닫기">✕</button>`; };
 kakaoBar();
 route();
-if (!MOVING && !SEARCH_BOT && introDue(S, introSeen())) openIntro();  // 처음 온 사람에게 한 번
+if (!MOVING && !SEARCH_BOT && introDue(S, introSeen())) openIntro("auto");  // 처음 온 사람에게 한 번
 if (NOTICE_SEEN && !MOVING) { backfillReviews(); syncTickets(); }
 if (PULL_DONE_MSG) toast(PULL_DONE_MSG);
 // 주소 이사로 데이터를 받아도 알림은 띄우지 않는다(사용자 요청 2026-11-08: 거쳐 가는 느낌을 줄이기). 받은 데이터는 그대로 보인다
