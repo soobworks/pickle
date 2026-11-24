@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611232308"></script>
+<script src="data.js?v=202611241626"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -2707,12 +2707,15 @@ const loadReviewTags = async () => {
 };
 const rtagsP = loadReviewTags();
 // 추천 방식 버전(ALGO_VER)을 추천과 관련된 기록에 붙인다(2026-11-20, docs/261119_데이터_추천설계.md P0-3): 규칙을 바꾼 전후를 지표로 비교하려고
+// 검색 로봇·미리보기 로봇(2026-11-24): 화면은 그대로 보여 주되(검색 노출) 기록·동기화(익명 계정 만들기)는 하지 않는다. 로봇이 앱 코드를 실행해 방문자 수를 부풀리던 것
+// 다음(Daum) 앱 브라우저(DaumApps)는 사람이라 'Daumoa'(다음 로봇)만 본다. HeadlessChrome(점검 도구·자동화)도 기록하지 않는다. 화면 판단(SEARCH_BOT)은 따로 둔다
+const IS_BOT = /Yeti|NaverBot|Googlebot|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|bingbot|Daumoa|DuckDuckBot|Applebot|Baiduspider|YandexBot|facebookexternalhit|meta-externalagent|kakaotalk-scrap|Twitterbot|Slurp|Bytespider|GPTBot|ClaudeBot|PetalBot|AhrefsBot|SemrushBot|HeadlessChrome|Lighthouse|(?:bot|crawler|spider)/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "");
 const ALGO_EVENTS = new Set(["rec_shown", "combo_fit", "cast_select", "to_dates", "combo_choice"]);
-const track = (event, props) => { if (ALGO_EVENTS.has(event) && props && !props.algo) props = {...props, algo: ALGO_VER}; const ok = TRK.track(event, props); if (ok) scheduleFlush(); if (typeof renderDebug === "function") renderDebug(); return ok; };
+const track = (event, props) => { if (IS_BOT) return false; if (ALGO_EVENTS.has(event) && props && !props.algo) props = {...props, algo: ALGO_VER}; const ok = TRK.track(event, props); if (ok) scheduleFlush(); if (typeof renderDebug === "function") renderDebug(); return ok; };
 let flushT; const scheduleFlush = () => { if (!TRK.live()) return; clearTimeout(flushT); flushT = setTimeout(() => TRK.flush().then(r => { if (r?.sent && TRK.queue().length) scheduleFlush(); }), 3000); };  // 남은 묶음이 있으면 이어서(티켓 CSV 처럼 한 번에 많을 때)
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && TRK.live()) TRK.flush(); });
 // 내 데이터 동기화 켜기(docs/backend_plan_2026-11-06.md 1단계): 기록 설정이 켜져 있고 PICKLE_TRACK.sync 에 시행일이 있을 때만
-const SYNC_CFG = (() => { const t = window.PICKLE_TRACK || {}; return TRK.live() && /^\d{4}-\d{2}-\d{2}$/.test(t.sync || "") ? {since: t.sync, login: (Array.isArray(t.login) ? t.login : []).filter(p => ["google", "kakao"].includes(p)), gclient: /^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(t.gclient || "") ? t.gclient : ""} : null; })();
+const SYNC_CFG = (() => { const t = window.PICKLE_TRACK || {}; return !IS_BOT && TRK.live() && /^\d{4}-\d{2}-\d{2}$/.test(t.sync || "") ? {since: t.sync, login: (Array.isArray(t.login) ? t.login : []).filter(p => ["google", "kakao"].includes(p)), gclient: /^\d+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(t.gclient || "") ? t.gclient : ""} : null; })();
 const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "");
 const loadSbLib = () => new Promise((ok, no) => {  // supabase-js 는 동기화를 켰을 때만 받는다(버전 고정·무결성 해시)
   if (window.supabase && window.supabase.createClient) return ok(window.supabase);
@@ -3623,7 +3626,7 @@ const recNoticeOn = () => trackUi() && !TRK.isOff() && S.proto?.notice !== NOTIC
 const syncNoticeOn = () => !!SYNC_CFG && (S.proto?.syncNotice || "") !== SYNC_CFG.since;
 const pullHintOn = () => canPullHere() && !pullOff() && !hasContent(S);
 // 검색 로봇에게는 홈 알림(개인정보 안내)을 그리지 않는다(사용자 요청 2026-11-13): 네이버가 설명 태그 대신 이 알림 문장을 검색 결과 설명으로 가져가서. 사람에게는 그대로 보인다
-const SEARCH_BOT = /Yeti|NaverBot|Googlebot|Google-InspectionTool|bingbot|Daum|DuckDuckBot|Applebot|Baiduspider|YandexBot|facebookexternalhit|kakaotalk-scrap|Twitterbot|Slurp/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "");
+const SEARCH_BOT = /Yeti|NaverBot|Googlebot|Google-InspectionTool|bingbot|Daum|DuckDuckBot|Applebot|Baiduspider|YandexBot|facebookexternalhit|kakaotalk-scrap|Twitterbot|Slurp/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "");  // 화면용(홈 알림·인트로 숨김). 기록 막기는 위 IS_BOT
 const homeNotices = () => { if (SEARCH_BOT) return "";
   const rec = recNoticeOn(), sync = syncNoticeOn(), pull = pullHintOn();
   if (!rec && !sync && !pull) return "";
