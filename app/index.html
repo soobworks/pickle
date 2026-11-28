@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611281636"></script>
+<script src="data.js?v=202611281649"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1487,7 +1487,16 @@ const csvPlan = (r, from) => { const w = workOf(r.title), perf = w && D.perfs.fi
     status: r.date <= from ? "seen" : "booked", src: "csv", ...(ks ? {kopis: ks.id} : {}), ...(r.venue ? {venue: r.venue} : {}), ...(r.seat ? {seat: r.seat} : {}),
     ...(r.price ? {price: r.price} : {}), ...(r.buyer ? {buyer: r.buyer} : {}), ...(r.memo ? {memo: r.memo} : {})}; };
 let CSV = null;  // 읽은 CSV(저장 안 함)
-const csvDup = r => S.plans.some(x => (x.work === r.title || x.work === workOf(r.title)?.name) && x.date === r.date && (x.time || "") === (r.time || ""));
+const csvMatch = r => S.plans.find(x => (x.work === r.title || x.work === workOf(r.title)?.name) && x.date === r.date && (x.time || "") === (r.time || ""));
+const csvDup = r => !!csvMatch(r);
+// 이미 등록한 티켓의 출연진 순서를 CSV 순서로 고친다(2026-11-28): 서버 저장이 가나다순으로 바꿔 놓은 예전 기록을 같은 파일을 다시 골라 한 번에 되돌린다.
+// 배역표가 있는 MVP 작품은 배역표 순서라 건드리지 않는다. dry 면 바꿀지(true/false)만 알려 준다. 같은 회차 리뷰의 출연진 순서도 같이
+// 한 번만 쓰는 되돌리기(사용자 요청 2026-11-28): 한 번 고치면 S.proto.coFixed 를 켜고 다시는 고칠 수·버튼을 보여 주지 않는다. 그 뒤로 불러오는 기록은 처음부터 co 로 입력 순서를 지킨다
+const csvReorder = (x, names, dry = false) => { if (!x || S.proto?.coFixed || workOf(x.work) || !x.cast) return false;
+  const cur = castKeys(x), want = names.filter(a => cur.includes(a)), order = [...want, ...cur.filter(k => !want.includes(k))];
+  if (!want.length || order.join("|") === cur.join("|")) return false; if (dry) return true;
+  for (const y of [x, reviewOf(S, x.work, x.date, x.time || "")]) if (y?.cast && order.every(k => k in y.cast)) { y.cast = Object.fromEntries(order.map(k => [k, y.cast[k]])); y.co = order; }
+  return true; };
 const ticketCsv = () => { const head = `<div><p class="eyebrow">티켓 등록하기</p><h1>CSV 파일로 등록하기</h1></div>`;
   if (!CSV) return `<div class="one">${head}<p class="small muted">첫 줄에 칸 이름이 있는 CSV 파일을 골라 주세요. 쉼표나 탭으로 나뉜 파일 모두 돼요.</p>
     <div class="card"><h3>읽는 칸</h3><p class="small">제목 · 일시 · 출연 · 장소 · 좌석 · 금액 · 구매처 · 리뷰/메모 <span class="muted">(캘린더 칸은 쓰지 않아요)</span></p>
@@ -1495,12 +1504,12 @@ const ticketCsv = () => { const head = `<div><p class="eyebrow">티켓 등록하
     <label class="btn">CSV 파일 고르기<input type="file" id="csvfile" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label>
     <a class="btn ghost" href="#ticket">뒤로</a></div>`;
   if (CSV.error) return `<div class="one">${head}<div class="card"><p class="small"><b>${esc(CSV.error)}</b></p><p class="tiny muted">${esc(CSV.name)}</p></div><button class="btn" data-act="csvReset">다른 파일 고르기</button></div>`;
-  const fresh = CSV.rows.map((r, k) => [r, k]).filter(([r]) => !csvDup(r)), dup = CSV.rows.length - fresh.length;
-  return `<div class="one">${head}<div class="card"><p><b>${fresh.length}개를 등록할 수 있어요</b></p><p class="tiny muted">${esc(CSV.name)}${CSV.removed ? ` · 뺀 ${CSV.removed}개` : ""}${dup ? ` · 이미 있는 ${dup}개는 건너뛰어요` : ""}${CSV.bad.length ? ` · 제목이나 일시를 못 읽은 ${CSV.bad.length}줄은 빼요` : ""}</p>
+  const fresh = CSV.rows.map((r, k) => [r, k]).filter(([r]) => !csvDup(r)), dup = CSV.rows.length - fresh.length, fix = CSV.rows.filter(r => csvReorder(csvMatch(r), r.cast, true)).length;
+  return `<div class="one">${head}<div class="card"><p><b>${fresh.length}개를 등록할 수 있어요</b></p><p class="tiny muted">${esc(CSV.name)}${CSV.removed ? ` · 뺀 ${CSV.removed}개` : ""}${dup ? ` · 이미 있는 ${dup}개는 건너뛰어요` : ""}${fix ? ` · 그중 ${fix}개는 출연진 순서를 파일 순서로 고쳐요` : ""}${CSV.bad.length ? ` · 제목이나 일시를 못 읽은 ${CSV.bad.length}줄은 빼요` : ""}</p>
     ${fresh.length ? `<p class="tiny muted">뮤지컬이 아닌 공연은 오른쪽 ✕로 빼 주세요.</p>` : ""}
     <div class="agenda csvlist">${fresh.map(([r, k]) => `<div class="agrow seen csvrow"><span class="agph"></span><span class="agd"><b>${+r.date.slice(8)}</b><span>${dowOf(r.date)}</span></span><span class="agi"><b>${esc(r.title)}</b><span class="tiny muted">${[r.date.slice(0, 7).replace("-", "."), r.time, r.venue, r.cast.join(" ")].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="csvdel" data-act="csvDel" data-k="${k}" aria-label="${esc(r.title)} 빼기">✕</button></div>`).join("")}</div>
     ${CSV.bad.length ? `<p class="tiny muted">못 읽은 줄: ${CSV.bad.slice(0, 5).map(b => `${b.line}번째 줄${b.title ? `(${esc(b.title)})` : ""}`).join(", ")}${CSV.bad.length > 5 ? " 외" : ""}</p>` : ""}</div>
-    <button class="btn" data-act="csvGo" ${fresh.length ? "" : "disabled"}>${fresh.length ? `${fresh.length}개 등록하기` : "새로 등록할 티켓이 없어요"}</button><button class="btn ghost" data-act="csvReset">다른 파일 고르기</button></div>`; };
+    <button class="btn" data-act="csvGo" ${fresh.length || fix ? "" : "disabled"}>${fresh.length ? `${fresh.length}개 등록하기${fix ? ` · 순서 ${fix}개 고치기` : ""}` : fix ? `출연진 순서 ${fix}개 고치기` : "새로 등록할 티켓이 없어요"}</button><button class="btn ghost" data-act="csvReset">다른 파일 고르기</button></div>`; };
 const readCsvFile = f => f.arrayBuffer().then(buf => { let text; try { text = new TextDecoder("utf-8", {fatal: true}).decode(buf); } catch (e) { text = new TextDecoder("euc-kr").decode(buf); }  // 엑셀 한글 CSV(CP949)
   return text.replace(/^﻿/, ""); });
 V.log = (work, id) => {
@@ -3947,8 +3956,9 @@ document.addEventListener("click", e => {
     case "unplan": if (SHEET) closeSheet(true); S.plans.splice(+d.i, 1); save(); route(); break;
     case "csvReset": CSV = null; route(); break;
     case "csvDel": { const k = +d.k; if (!CSV?.rows?.[k]) return; CSV.rows.splice(k, 1); CSV.removed = (CSV.removed || 0) + 1; route(); break; }  // 미리 보기에서 뮤지컬이 아닌 공연 빼기(사용자 요청 2026-11-05)
-    case "csvGo": { if (!CSV?.rows) return; const from = today(), add = CSV.rows.filter(r => !csvDup(r)).map(r => csvPlan(r, from)); if (!add.length) return;
-      S.plans.push(...add); add.forEach(planId); CSV = null; PCAL_M = add.map(x => x.date).sort().pop().slice(0, 7); save(); toast(`티켓 ${add.length}개를 등록했어요`); location.hash = "#plans"; break; }
+    case "csvGo": { if (!CSV?.rows) return; const from = today(), add = CSV.rows.filter(r => !csvDup(r)).map(r => csvPlan(r, from)), fixed = CSV.rows.filter(r => csvReorder(csvMatch(r), r.cast)).length; if (!add.length && !fixed) return; if (fixed) (S.proto ||= {}).coFixed = true;
+      S.plans.push(...add); add.forEach(planId); CSV = null; if (add.length) PCAL_M = add.map(x => x.date).sort().pop().slice(0, 7); save();
+      toast([add.length ? `티켓 ${add.length}개를 등록했어요` : "", fixed ? `출연진 순서 ${fixed}개를 고쳤어요` : ""].filter(Boolean).join(" · ")); location.hash = "#plans"; break; }
     case "rvCr": { const dr = S.proto?.rdraft; if (!dr || !SAT.some(([k]) => k === d.a)) return; const cur = dr.cr;  // 하나를 고르면 나머지는 꺼진다(같은 걸 다시 눌러 풀어야 바꾼다). 저장은 [저장]
       if (cur?.a === d.a) dr.cr = null; else if (!cur?.a) dr.cr = {a: d.a}; else return; save(); route(); break; }
     case "rvCrWhy": { const dr = S.proto?.rdraft, cur = dr?.cr; if (!cur || cur.a !== "dislike") return; const e = {...cur};
