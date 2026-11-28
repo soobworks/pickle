@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611281659"></script>
+<script src="data.js?v=202611281720"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -1929,6 +1929,8 @@ const monthRange = dates => { if (!dates.length) return []; const out = []; let 
 const calMonthOf = (S, work, dates) => { const ms = monthRange(dates), cm = S.proto?.cm?.[work]; return ms.includes(cm) ? cm : ms[0] || ""; };
 const calMove = (S, work, dates, delta) => { const ms = monthRange(dates), i = Math.max(0, ms.indexOf(calMonthOf(S, work, dates))), m = ms[Math.max(0, Math.min(ms.length - 1, i + delta))]; ((S.proto ||= {}).cm ||= {})[work] = m; return m; };
 const calDayOf = (S, work, dates) => dates.includes(S.proto?.cd?.[work]) ? S.proto.cd[work] : "";
+// 조합의 캘린더(pickcal)는 여러 날을 고른다(사용자 요청 2026-11-28: 같은 조합 회차를 모두 눌러 둔 채로). cd 가 날짜 하나(문자열)여도 읽는다
+const calDaysOf = (S, work, dates) => { const v = S.proto?.cd?.[work]; return [...new Set(Array.isArray(v) ? v : v ? [v] : [])].filter(x => dates.includes(x)).sort(); };
 // 요약 한 줄 정보의 '최저~': 시드는 등급별 가격 표, KOPIS 는 가격 안내 글에서 숫자(원)를 뽑는다
 const priceMin = prices => { const n = (prices || []).map(p => Array.isArray(p) ? p[1] : 0).filter(x => x > 0); return n.length ? Math.min(...n) : 0; };
 const priceMinText = t => { const n = [...String(t || "").matchAll(/(\d{1,3}(?:,\d{3})+|\d{4,})\s*원/g)].map(m => +m[1].replace(/,/g, "")).filter(x => x >= 1000); return n.length ? Math.min(...n) : 0; };
@@ -3338,7 +3340,7 @@ const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 �
   const whenHead = key => { const ps = perfsOfKey(key); if (!ps.length) return "";
     const [p0, ...rest] = ps, dt = p => `${md(p.date)}(${esc(p.dow)}) ${esc(p.time)}${groupShow(p) ? " 단관" : ""}`;
     return `<div class="rcwhen"><b class="rcd">${p0.date.slice(5, 7)}.${p0.date.slice(8)} <span>(${esc(p0.dow)})</span> ${esc(p0.time)}</b>${groupBadge(p0)}
-      ${rest.length ? `<span class="rcmore">${rest.slice(0, 3).map(dt).join(" · ")}${rest.length > 3 ? ` 외 ${rest.length - 3}회` : ""}</span>` : ""}</div>`; };
+      ${rest.length ? `<span class="rcmore">같은 조합 다른 날 ${rest.slice(0, 3).map(dt).join(" · ")}${rest.length > 3 ? ` 외 ${rest.length - 3}회` : ""}</span>` : ""}</div>`; };
   const showOnlyLine = key => { const p0 = perfsOfKey(key)[0]; return p0 ? showOnlyRoles(D, work).filter(r => p0.cast[r.role]).map(r => `<p class="tiny muted"><b>${esc(r.role)}</b> ${esc(p0.cast[r.role])} <span>(가장 가까운 회차, 회차마다 달라요)</span></p>`).join("") : ""; };
   const sameCast = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
   const card = (c, i) => { const e = sat[c.key], on = nav ? pk === c.key && sameCast(c.cast, sel) : sameCast(c.cast, sel), names = Object.values(c.cast), rec = recBy.get(c.key);  // 1·2순위 비교 문구(rankNote)는 화면에 안 보인다(사용자 요청 2026-11-03 저녁)  // 배우·날짜 먼저 화면은 처음엔 아무것도 안 골라져 있다(눌러야 on)
@@ -3349,7 +3351,8 @@ const satCards = (work, sel, inDates = null, nav = false) => {  // nav: 배우 �
       <button class="rcpick${nav ? " go" : ""} ${on ? "on" : ""}" data-act="selCombo" data-work="${W}"${DD}${nav ? ` data-nav="${nav === "rec" ? "rec" : 1}"` : ""} data-i="${i}" aria-pressed="${on}">${on ? (nav ? "고른 조합 · 날짜 보기" : "고른 조합") : nav ? "이 조합으로 날짜 보기" : "이 조합 고르기"}</button>
       ${e?.a === "like" ? `<div class="satbox"><p class="tiny muted">좋아한 조합으로 기억할게요. 이 배우들이 나오는 조합을 앞에 보여 드려요.</p></div>` : e?.a === "dislike" ? `<div class="satbox">${why}</div>` : ""}</div>`; };  // 답한 뒤에만 아래 칸(좋아요 안내 · 누구 때문인가요?)
   const more = sh.again ? `<p class="tiny muted">다시 추천은 한 번만 할 수 있어요</p>`
-    : sh.list.length < 2 ? `<p class="tiny muted">이 조건에서는 조합이 하나뿐이에요</p>`
+    : sh.list.length < 2 ? (() => { const ps = sh.list[0] ? perfsOfKey(sh.list[0].key) : [], ds = ps.map(p => md(p.date));  // 조합 하나 = 회차 하나로 읽히지 않게(사용자 요청 2026-11-28)
+        return `<p class="tiny muted">이 조건에 맞는 조합은 이것 하나예요${ps.length > 1 ? ` · ${ds.slice(0, 3).join(", ")}${ps.length > 3 ? " 등" : "에"} ${ps.length}번 볼 수 있어요` : ""}</p>`; })()
     : `<button class="btn ghost" data-act="recAgain" data-work="${W}"${DD}>다시 추천받기</button>`;
   return `${sh.list.map(card).join("")}${more}`;
 };
@@ -3376,10 +3379,10 @@ const allCast = (work, cast) => [...leads(work, cast), ...rests(work, cast)].map
 // 날짜별 회차 카드: [볼 예정에 담기] 하나(예매처 버튼은 담은 뒤 화면 #saved 에 있다). 이미 담은 회차는 그 화면으로 가는 버튼. 예매 링크가 없는 회차는 예전처럼 '예매 링크 준비 중' 안내
 const planIdx = (work, date, time) => S.plans.findIndex(x => x.work === work && x.date === date && x.time === time);
 // 끝난 조합 추천 작품(2026-11-23 사용자 결정): [보고 싶은 조합에 담기] 대신 [본 공연 기록하기] → 그 회차의 관람 기록 화면
-const sessionCard = (work, p) => { const pi = planIdx(work, p.date, p.time), run = runOf(work, p.date) || {};
+const sessionCard = (work, p, stay = false) => { const pi = planIdx(work, p.date, p.time), run = runOf(work, p.date) || {};
   return `<div class="card perf">${whenTile(p)}<p class="small muted">${esc(run.venue || "")}</p><div class="castall">${allCast(work, p.cast)}</div>
     <div class="acts">${endedCombo(workOf(work), today()) ? `<a class="btn" href="#review/${esc(work)}/${p.date}/${p.time}">본 공연 기록하기</a>` : pi >= 0 ? `<a class="btn" href="#saved/${pi}">보고 싶은 조합에 담았어요 · ${run.ticket ? "예매처로 가기" : "담은 공연 보기"} →</a>`
-      : `<button class="btn" data-act="plan" data-work="${esc(work)}" data-date="${p.date}" data-time="${p.time}">보고 싶은 조합에 담기</button>${run.ticket ? "" : `<button class="btn ghost" disabled>예매 링크 준비 중</button>`}`}</div>
+      : `<button class="btn" data-act="plan" data-work="${esc(work)}" data-date="${p.date}" data-time="${p.time}"${stay ? ` data-stay="1"` : ""}>보고 싶은 조합에 담기</button>${run.ticket ? "" : `<button class="btn ghost" disabled>예매 링크 준비 중</button>`}`}</div>
     </div>`; };  // '좌석 배치도·가격 자세히' 링크는 뺐다(사용자 요청 2026-11-09)
 const datesSection = (ref, cls = "") => {  // cls: "pickcal" 이면 이 조합 고르기 뒤 캘린더(붉은 테두리·누르면 붉게)
   const work = ref.key, from = asOf(work), sel = curSel(D, S, work, from), perfs = selPerfs(D, work, sel, from), dates = [...new Set(perfs.map(p => p.date))], {star, avoid} = pinsOf(S, work);
@@ -3387,7 +3390,7 @@ const datesSection = (ref, cls = "") => {  // cls: "pickcal" 이면 이 조합 �
     const hints = relaxHints(D, work, sel, from).slice(0, 3).map(h => `<div class="tl"><span class="tlab">${esc(h.role)}만 바꾸면</span><div class="chips">${h.options.slice(0, 4).map(o => `<button class="chip x" data-act="selActor" data-work="${esc(work)}" data-role="${esc(h.role)}" data-a="${esc(o.actor)}">${esc(o.actor)} · ${o.n}일</button>`).join("")}</div></div>`).join("");
     return `<section id="dates" class="sec${cls ? " " + cls : ""}"><h2>이 조합으로 볼 수 있는 날</h2><div class="card"><p class="small"><b>고른 조합이 같이 나오는 날이 없어요.</b></p>${hints || `<p class="small muted">다른 배우를 골라 보세요.</p>`}
       ${star.length || avoid.length ? `<button class="chip x" data-act="comboReset" data-work="${esc(work)}">⭐·빼기 모두 풀기</button>` : ""}</div></section>`; }
-  const ms = monthRange(dates), m = calMonthOf(S, work, dates), i = ms.indexOf(m), sd = calDayOf(S, work, dates), byDate = {};
+  const ms = monthRange(dates), m = calMonthOf(S, work, dates), i = ms.indexOf(m), multi = cls === "pickcal", sds = multi ? calDaysOf(S, work, dates) : [calDayOf(S, work, dates)].filter(Boolean), byDate = {};
   for (const p of perfs) (byDate[p.date] ||= []).push(p);
   const first = new Date(m + "-01T00:00:00"), pad = first.getDay(), nd = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
   let cells = ""; for (let k = 0; k < pad; k++) cells += `<div class="day empty"></div>`;
@@ -3395,12 +3398,15 @@ const datesSection = (ref, cls = "") => {  // cls: "pickcal" 이면 이 조합 �
     const date = `${m}-${String(d).padStart(2, "0")}`, ps = byDate[date];
     if (!ps) { cells += `<div class="day none ${redDay(date) ? "red" : ""}"><span class="n">${d}</span></div>`; continue; }
     const star1 = ps.some(p => (p.notes || []).some(n => /첫공|막공|폐막/.test(n))) ? `<span class="star">★</span>` : "";
-    cells += `<button type="button" class="day has ${date === sd ? "pin" : ""} ${redDay(date) ? "red" : ""}" data-act="calDay" data-work="${esc(work)}" data-d="${date}" aria-label="${md(date)} 회차 ${ps.length}개"><span class="n">${d}</span>${star1}</button>`; }
+    cells += `<button type="button" class="day has ${sds.includes(date) ? "pin" : ""} ${redDay(date) ? "red" : ""}" data-act="calDay" data-work="${esc(work)}" data-d="${date}"${multi ? ` data-multi="1" aria-pressed="${sds.includes(date)}"` : ""} aria-label="${md(date)} 회차 ${ps.length}개"><span class="n">${d}</span>${star1}</button>`; }
   return `<section id="dates" class="sec${cls ? " " + cls : ""}"><h2>${Object.keys(sel).length ? "이 조합으로 볼 수 있는 날" : "공연 날짜"}</h2>
     <div class="card"><div class="calnav"><button type="button" class="chip x" data-act="calMove" data-work="${esc(work)}" data-d="-1" aria-label="이전 달" ${i <= 0 ? "disabled" : ""}>‹</button><b>${+m.slice(0, 4)}년 ${+m.slice(5, 7)}월</b><button type="button" class="chip x" data-act="calMove" data-work="${esc(work)}" data-d="1" aria-label="다음 달" ${i >= ms.length - 1 ? "disabled" : ""}>›</button></div>
       <div class="month"><div class="dow"><span class="red">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="red">토</span></div><div class="days">${cells}</div></div>
       <p class="tiny muted">${!Object.keys(sel).length ? "진한 날에 공연이 있어요. 배우를 고르면 그 배우가 나오는 날만 남아요." : cls === "pickcal" ? "붉은 테두리 날에 이 조합이 나와요." : "진한 날에 이 조합이 나와요."} ★는 첫공·막공이에요.</p><p class="tiny muted">공식 캐스팅 일정이라 바뀔 수 있어요.</p></div>
-    ${sd ? (byDate[sd] || []).map(p => sessionCard(work, p)).join("") : `<p class="small muted">날짜를 누르면 그날 회차와 전체 캐스트가 나와요.</p>`}</section>`;
+    ${sds.length ? (() => { const ps = sds.flatMap(x => byDate[x] || []), open = ps.filter(p => planIdx(work, p.date, p.time) < 0 && !isPrivate(p));  // 고른 날 회차 카드 모두(날짜·시간 순). 여럿이면 담아도 이 화면에 남는다
+        return `${multi && ps.length > 1 ? `<p class="small muted">날짜를 다시 누르면 빼고, 다른 날을 누르면 더해요.</p>` : ""}${ps.map(p => sessionCard(work, p, multi && ps.length > 1)).join("")}
+          ${multi && open.length > 1 && !endedCombo(workOf(work), today()) ? `<button class="btn" data-act="planAll" data-work="${esc(work)}" data-ps="${open.map(p => p.date + "|" + p.time).join(",")}">${open.length}회 모두 담기</button>` : ""}`; })()
+      : `<p class="small muted">날짜를 누르면 그날 회차와 전체 캐스트가 나와요.</p>`}</section>`;
 };
 
 // 회차 캐스팅이 없는 공연(KOPIS 만·회차 준비 중): ② 대표 출연진 특징 + 작은 배우 평가 / ③ 날짜별 캐스팅은 예매처에서
@@ -3604,9 +3610,11 @@ const sheetBody = () => {
   return "";
 };
 // 볼 예정에 담기: 바로 담는다(v0.9 · docs/261027_2 14절 — 담기 전 '기대돼요?' 별점 시트는 없애고, 조합 만족도는 추천 카드에서 묻는다). 예매처 이동은 담은 뒤 화면(#saved)에서
-const finishPending = (action, p) => {
+const finishPending = (action, p, stay = false) => {
   track("combo_choice", comboChoiceRecord(D, S, action, p, today()));
-  S.plans.push({work: p.work, date: p.date, dow: p.dow, time: p.time, cast: p.cast, tagged: false, status: "tentative"}); save(); location.hash = "#saved/" + (S.plans.length - 1);  // 캘린더에 미정일정으로(예매하면 사용자가 관람예정으로 바꾼다)
+  S.plans.push({work: p.work, date: p.date, dow: p.dow, time: p.time, cast: p.cast, tagged: false, status: "tentative"}); save();
+  if (stay) return;  // 같은 조합 여러 회차를 한 화면에서 담을 때는 남는다(부르는 쪽이 다시 그린다)
+  location.hash = "#saved/" + (S.plans.length - 1);  // 캘린더에 미정일정으로(예매하면 사용자가 관람예정으로 바꾼다)
 };
 
 // ---------- 라우터 (proto) ----------
@@ -3847,8 +3855,8 @@ document.addEventListener("click", e => {
     case "selActor": { const before = setSel(D, S, d.work, d.role, d.a, asOf(d.work)); save(); route(); break; }  // 그 배역의 배우를 바꾼다: 아래 날짜가 다시 계산된다
     case "selCombo": { const c = cardsOf(d).list[+d.i]; if (!c) return; setSelCast(S, d.work, c.cast);
       track("cast_select", {work: d.work, path: d.dd ? "date" : d.nav === "rec" || CUR.name !== "find" ? "show" : "actor", rank: +d.i + 1, to_calendar: !!d.nav});
-      if (d.nav) { const P = (S.proto ||= {}), ds = selDates(D, d.work, curSel(D, S, d.work, asOf(d.work)), asOf(d.work)), want = d.dd ? S.cal[d.work]?.dates || [] : [], d0 = ds.find(x => want.includes(x)) || ds[0];
-        (P.pick ||= {})[d.work + (d.dd ? "#날짜" : "")] = c.key; if (d0) { (P.cd ||= {})[d.work] = d0; (P.cm ||= {})[d.work] = d0.slice(0, 7); } }  // 캘린더는 가장 가까운 날(날짜 먼저면 고른 날 중 첫날)을 눌러 둔 채로 연다(사용자 요청 2026-11-18)
+      if (d.nav) { const P = (S.proto ||= {}), ds = selDates(D, d.work, curSel(D, S, d.work, asOf(d.work)), asOf(d.work)), want = d.dd ? S.cal[d.work]?.dates || [] : [], inW = ds.filter(x => want.includes(x)), on = inW.length ? inW : ds;
+        (P.pick ||= {})[d.work + (d.dd ? "#날짜" : "")] = c.key; if (on.length) { (P.cd ||= {})[d.work] = on; (P.cm ||= {})[d.work] = on[0].slice(0, 7); } }  // 캘린더는 이 조합이 나오는 날을 모두 눌러 둔 채로, 가장 가까운 날의 달로 연다(날짜 먼저면 고른 날짜 안의 날만. 2026-11-18 → 11-28 여러 날)
       save(); if (d.nav) location.hash = d.nav === "rec" ? `#find/${d.work}/cal` : `#find/${d.work}/${d.dd ? "date" : "actor"}/cal`; else route(); break; }  // 배우 먼저: 고른 조합의 캘린더 화면으로
     case "sat": { const c = cardsOf(d).list[+d.i]; if (!c) return; // 아이콘(2026-11-17): 다른 쪽을 누르면 바로 바뀐다(setSat 이 덮어쓴다). 같은 쪽을 다시 누르면 풀린다
       const run = runLabelOf(D, d.work, (D.perfs.find(p => p.work === d.work && comboKey(D, d.work, p.cast) === c.key) || {}).date || today());
@@ -3862,7 +3870,9 @@ document.addEventListener("click", e => {
       if (e.ask === "yes") for (const k of satSpread(D, S, d.work, e.actor)) track("combo_fit", satRecord(D, S, d.work, k));  // 같은 배우가 든 다른 카드에도 같은 답  // 이 작품에 한해 뺀다(9.2절). 몰래 감점하지 않는다
       save(); route(); break; }
     case "recAgain": { if (!recAgain(D, S, d.work, asOf(d.work), d.dd ? S.cal[d.work]?.dates || [] : null)) { toast("이 조건에서 더 보여 드릴 조합이 없어요"); return; } save(); route(); break; }
-    case "calDay": { ((S.proto ||= {}).cd ||= {})[d.work] = d.d; save(); track("date_pick", {work: d.work, path: CUR.name === "show" || (CUR.name === "find" && CUR.args[1] === "cal") ? "show" : "actor", date: d.d}); route(); break; }  // 조합 달력에서 날짜 고름(2026-11-09)
+    case "calDay": { const cd = ((S.proto ||= {}).cd ||= {});
+      if (d.multi) { const cur = Array.isArray(cd[d.work]) ? cd[d.work] : cd[d.work] ? [cd[d.work]] : []; cd[d.work] = cur.includes(d.d) ? cur.filter(x => x !== d.d) : [...cur, d.d].sort(); }  // 조합의 캘린더: 눌러 더하고 다시 눌러 뺀다
+      else cd[d.work] = d.d; save(); track("date_pick", {work: d.work, path: CUR.name === "show" || (CUR.name === "find" && CUR.args[1] === "cal") ? "show" : "actor", date: d.d}); route(); break; }  // 조합 달력에서 날짜 고름(2026-11-09)
     case "calMove": { calMove(S, d.work, selDates(D, d.work, curSel(D, S, d.work, asOf(d.work)), asOf(d.work)), +d.d); save(); route(); break; }
     case "toDates": { const t = document.querySelector("#dates"); if (t) t.scrollIntoView({behavior: "smooth"});
       if (CUR.name === "show") { const w = decodeURIComponent(CUR.args[0] || ""), sel = curSel(D, S, w, asOf(w)), recs = shownRecs(D, S, w, asOf(w)).list, i = recs.findIndex(c => Object.entries(c.cast).every(([r, a]) => sel[r] === a));
@@ -3942,7 +3952,11 @@ document.addEventListener("click", e => {
       break; }
     case "kakaoHide": { try { sessionStorage.setItem("pickle_kakao_off", "1"); } catch (e) {} const el = document.querySelector("#kakaobar"); if (el) el.hidden = true; break; }
     case "runQuery": { const st = S.cal[d.work]; if (!st?.count) { toast("조건에 맞는 회차가 없어요"); return; } S.query = {work: d.work, lo: st.lo, hi: st.hi, actors: st.actors, dates: st.dates || []}; save(); location.hash = "#result"; break; }
-    case "plan": { const p = D.perfs.find(x => x.work === d.work && x.date === d.date && x.time === d.time); if (!p) return; if (isPrivate(p)) { toast("단체 대관 공연이라 일반 예매가 안 돼요"); return; } finishPending("plan", p); break; }  // 바로 담는다(별점 시트 없음)
+    case "plan": { const p = D.perfs.find(x => x.work === d.work && x.date === d.date && x.time === d.time); if (!p) return; if (isPrivate(p)) { toast("단체 대관 공연이라 일반 예매가 안 돼요"); return; }
+      if (planIdx(p.work, p.date, p.time) >= 0) return; finishPending("plan", p, !!d.stay); if (d.stay) { toast(`${md(p.date)} 회차를 캘린더에 담았어요`); route(); } break; }
+    case "planAll": { const ps = (d.ps || "").split(",").map(k => { const [date, time] = k.split("|"); return D.perfs.find(x => x.work === d.work && x.date === date && x.time === time); })
+        .filter(p => p && !isPrivate(p) && planIdx(p.work, p.date, p.time) < 0); if (!ps.length) return;
+      for (const p of ps) finishPending("plan", p, true); toast(`${ps.length}회를 캘린더에 담았어요`); route(); break; }  // 같은 조합 여러 회차 한 번에(사용자 요청 2026-11-28)  // 바로 담는다(별점 시트 없음)
     case "unplanAsk": if (!S.plans[+d.i]) return; SHEET = {kind: "unplan", i: +d.i}; renderSheet(); break;  // 삭제하기 → 확인 팝업
     case "unplan": if (SHEET) closeSheet(true); S.plans.splice(+d.i, 1); save(); route(); break;
     case "csvReset": CSV = null; route(); break;
