@@ -575,7 +575,7 @@ a.wcard:hover{border-color:var(--hl)}
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden data-noshot></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheettitle" tabindex="-1" data-noshot></div>
 
-<script src="data.js?v=202611241626"></script>
+<script src="data.js?v=202611281636"></script>
 <script>
 const D = window.PICKLE_DATA;
 const $ = (s, el = document) => el.querySelector(s);
@@ -614,7 +614,12 @@ const fixCastOrder = st => { const walk = (v, work) => {
 fixCastOrder(S);
 let SAVE_HOOK = null, SYNC_HOOK = null;  // 저장할 때마다 부르는 것. SAVE_HOOK: 티켓 기록 보내기 예약(기록 코드가 채움) · SYNC_HOOK: 내 데이터 서버 저장 예약(동기화 코드가 채움, 꺼져 있으면 null)
 const saveRaw = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-const save = () => { saveRaw(); if (SAVE_HOOK) SAVE_HOOK(); if (SYNC_HOOK) SYNC_HOOK(); };
+// 출연진 순서 지키기(2026-11-22): 서버 저장(jsonb)은 객체 키를 길이·가나다순으로 다시 늘어놓아서, CSV·직접 기록처럼 배우 이름이 키인 출연진의 입력 순서가 사라졌다.
+// 저장할 때마다 키 순서를 배열 co 로 함께 남기고(배열은 순서가 그대로), 화면은 castKeys 로 그 순서를 쓴다. 키가 같으면 이미 있는 co 를 그대로 둔다(서버에서 받은 섞인 객체로 덮지 않게)
+const castKeys = x => { const c = x?.cast || {}, ks = Array.isArray(x?.co) ? x.co.filter(k => Object.prototype.hasOwnProperty.call(c, k)) : []; return [...ks, ...Object.keys(c).filter(k => !ks.includes(k))]; };
+const keepCastOrder = S => { for (const x of [...(S.plans || []), ...(S.reviews || [])]) { if (!x || !x.cast || typeof x.cast !== "object" || workOf(x.work)) continue;  // MVP 작품은 배역표 순서로 보여 줘서 필요 없다
+  const ks = Object.keys(x.cast); if (!(Array.isArray(x.co) && x.co.length === ks.length && ks.every(k => x.co.includes(k)))) x.co = ks; } };
+const save = () => { keepCastOrder(S); saveRaw(); if (SAVE_HOOK) SAVE_HOOK(); if (SYNC_HOOK) SYNC_HOOK(); };
 // <move>
 // 주소 이사(docs/backend_plan_2026-11-06.md 7절). 브라우저 저장소(localStorage)는 주소(도메인)마다 따로라서, 주소가 바뀌면 예전 주소에 저장한 취향·티켓·리뷰가 새 주소에서 안 보인다.
 // 예전 주소에서 열리면 이 브라우저의 PICKLE 데이터를 주소 #조각(서버로 안 가는 부분)에 담아 새 주소로 넘기고, 새 주소의 앱이 받아서 저장한다(동기화가 켜져 있으면 서버에도 올라간다).
@@ -1292,7 +1297,7 @@ const shrinkImage = (file, max = 480) => new Promise((ok, no) => { const url = U
   img.onerror = () => { URL.revokeObjectURL(url); no(new Error("image")); }; img.src = url; });
 const planPoster = x => userPoster(x) || workOf(x.work)?.poster || kopisShow(x.kopis)?.poster || "";  // MVP 작품은 앱 포스터, 본 공연 기록하기로 남긴 KOPIS 공연은 KOPIS 포스터
 const planVenue = x => runOf(x.work, x.date)?.venue || kopisShow(x.kopis)?.venue || x.venue || "";
-const planCast = x => { const ls = leads(x.work, x.cast); return ls.length ? ls : Object.values(x.cast || {}).map(a => ["", a]); };  // 배역을 모르는 공연은 배우만
+const planCast = x => { const ls = leads(x.work, x.cast); return ls.length ? ls : castKeys(x).map(k => ["", x.cast[k]]); };  // 배역을 모르는 공연은 배우만
 const CSPLIT_MAX = 4;
 const pcalCell = (d, from) => {
   if (!d) return `<span class="cday out" aria-hidden="true"></span>`;
@@ -1404,7 +1409,7 @@ V.review = (work, date, time, entry = "log") => {
     return `<div class="one">${head}<div class="card"><h3>저장했어요</h3><p class="small muted">남긴 기록은 배우 정보로 쓰이고, 취향 카드는 바뀌지 않아요.</p></div>
       ${sug.length ? `<div class="card"><h3>배우 조건에 넣을까요? <span class="small muted">고른 것만</span></h3><div class="chips">${sug.map(s => { const on = dr.picks.some(x => x.actor === s.actor); return `<button type="button" class="chip x ${on ? "on" : ""}" data-act="rvPick" data-a="${esc(s.actor)}" data-k="${s.kind}" aria-pressed="${on}">${esc(s.actor)} 배우를 ${s.kind === "fav" ? "애정 배우" : "피하고 싶은 배우"}에 넣기</button>`; }).join("")}</div>
         <div class="nbgrid"><button class="nb" data-act="rvSug" data-y="1" ${dr.picks.length ? "" : "disabled"}>넣기</button><button class="nb" data-act="rvSug" data-y="0">괜찮아요</button></div></div>` : `<button class="btn" data-act="rvSug" data-y="0">내 티켓으로</button>`}</div>`; }
-  const roles = Object.keys(rv.cast);
+  const roles = castKeys(rv);  // 입력 순서(co) 그대로
   if (dr.castEdit) return `<div class="one">${head}<div class="card"><h3>실제로 본 배우를 골라 주세요</h3><p class="small muted">배역마다 그날 나온 배우를 누르면 바뀌어요. 남긴 평가는 바꾼 배우에게 옮겨 가요.</p>
     ${roles.map(role => { const a = rv.cast[role], R = esc(role), cs = [...new Set([a, ...rvRoleCands(D, rv, role)])].filter(Boolean);
       return `<div class="rvcast"><p class="small"><b>${R}</b></p><div class="chips">${cs.map(b => `<button type="button" class="chip ${b === a ? "on" : ""}" data-act="rvSwap" data-r="${R}" data-a="${esc(b)}" aria-pressed="${b === a}"${b === a ? " disabled" : ""}>${esc(b)}</button>`).join("")}</div></div>`; }).join("")}</div>
